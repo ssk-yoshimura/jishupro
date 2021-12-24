@@ -1,0 +1,40 @@
+<robot name="peco">
+  
+  <link name="leg">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+	<mesh filename="file:///home/mech-user/jishupro_ws/src/CAD/model/link_leg_m.STL"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="foot">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+	<mesh filename="file:///home/mech-user/jishupro_ws/src/CAD/model/link_foot_m.STL"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="leg2foot" type="revolute">
+    <parent link="leg"/>
+    <child link="foot"/>
+    <origin xyz="0 0 -0.3" rpy="1.57 0 -1.57"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1000.0" lower="-1.5" upper="1.5" velocity="0.5"/>
+  </joint>
+
+    
+</robot>

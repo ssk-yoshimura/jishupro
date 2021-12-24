@@ -1,0 +1,7 @@
+rarm:
+  - leg2foot : rarm-elbow-p
+
+
+rarm-end-coords:
+  parent : foot
+  translate : [0, 0, 0]
