@@ -1,4 +1,4 @@
-<robot name="peco">
+<robot name="mbot">
 
   <link name="root">
     <inertial>

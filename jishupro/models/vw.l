@@ -1,3 +1,3 @@
-(load "sample_model.l")
-(peco)
-(objects (list *peco*))
+(load "mbot.l")
+(mbot)
+(objects (list *mbot*))

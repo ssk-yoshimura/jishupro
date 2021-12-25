@@ -1,0 +1,19 @@
+rarm:
+  - root2rublock : rarm-shoulder-y
+  - rublock2rleg : rarm-shoulder-p
+  - rleg2rfoot : rarm-elbow-p
+larm:
+  - root2lublock : larm-shoulder-y
+  - lublock2lleg : larm-shoulder-p
+  - lleg2lfoot : larm-elbow-p
+
+rarm-end-coords:
+  parent : rfoot
+  translate : [-0.005, 0, -0.2137]
+larm-end-coords:
+  parent : lfoot
+  translate : [-0.005, 0, -0.2137]
+
+angle-vector:
+  zero-pose : [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  open-pose : [-20.0, -20.0, -20.0, 20.0, -20.0, -20.0]
