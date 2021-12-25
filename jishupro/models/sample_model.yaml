@@ -1,7 +1,15 @@
 rarm:
-  - leg2foot : rarm-elbow-p
-
+  - root2rublock : rarm-shoulder-y
+  - rublock2rleg : rarm-shoulder-p
+  - rleg2rfoot : rarm-elbow-p
+larm:
+  - root2lublock : larm-shoulder-y
+  - lublock2lleg : larm-shoulder-p
+  - lleg2lfoot : larm-elbow-p
 
 rarm-end-coords:
-  parent : foot
-  translate : [0, 0, 0]
+  parent : rfoot
+  translate : [-0.005, 0, -0.2137]
+larm-end-coords:
+  parent : lfoot
+  translate : [-0.005, 0, -0.2137]

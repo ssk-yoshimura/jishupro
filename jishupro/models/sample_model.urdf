@@ -1,6 +1,34 @@
 <robot name="peco">
+
+  <link name="root">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+	<mesh filename="file:///home/mech-user/jishupro_ws/src/CAD/model/link_root.STL"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="rublock">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+	<mesh filename="file:///home/mech-user/jishupro_ws/src/CAD/model/shoulder2.STL"/>
+      </geometry>
+    </visual>
+  </link>
   
-  <link name="leg">
+  <link name="rleg">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="1"/>
@@ -9,12 +37,12 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-	<mesh filename="file:///home/mech-user/jishupro_ws/src/CAD/model/link_leg_m.STL"/>
+	<mesh filename="file:///home/mech-user/jishupro_ws/src/CAD/model/link_leg.STL"/>
       </geometry>
     </visual>
   </link>
 
-  <link name="foot">
+  <link name="rfoot">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="1"/>
@@ -23,18 +51,99 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-	<mesh filename="file:///home/mech-user/jishupro_ws/src/CAD/model/link_foot_m.STL"/>
+	<mesh filename="file:///home/mech-user/jishupro_ws/src/CAD/model/link_foot.STL"/>
       </geometry>
     </visual>
   </link>
 
-  <joint name="leg2foot" type="revolute">
-    <parent link="leg"/>
-    <child link="foot"/>
-    <origin xyz="0 0 -0.3" rpy="1.57 0 -1.57"/>
-    <axis xyz="0 0 1"/>
+  <link name="lublock">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+	<mesh filename="file:///home/mech-user/jishupro_ws/src/CAD/model/shoulder2.STL"/>
+      </geometry>
+    </visual>
+  </link>
+  
+  <link name="lleg">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+	<mesh filename="file:///home/mech-user/jishupro_ws/src/CAD/model/link_leg_l.STL"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="lfoot">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+	<mesh filename="file:///home/mech-user/jishupro_ws/src/CAD/model/link_foot.STL"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="root2rublock" type="revolute">
+    <parent link="root"/>
+    <child link="rublock"/>
+    <origin xyz="0.2075 -0.118 0.4054" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
     <limit effort="1000.0" lower="-1.5" upper="1.5" velocity="0.5"/>
   </joint>
 
+  <joint name="rublock2rleg" type="revolute">
+    <parent link="rublock"/>
+    <child link="rleg"/>
+    <origin xyz="0 0 -0.010" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1000.0" lower="-1.5" upper="1.5" velocity="0.5"/>
+  </joint>
+
+  <joint name="rleg2rfoot" type="revolute">
+    <parent link="rleg"/>
+    <child link="rfoot"/>
+    <origin xyz="0.009 0 -0.210" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1000.0" lower="-1.5" upper="1.5" velocity="0.5"/>
+  </joint>
+
+  <joint name="root2lublock" type="revolute">
+    <parent link="root"/>
+    <child link="lublock"/>
+    <origin xyz="0.2075 0.118 0.4054" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="1000.0" lower="-1.5" upper="1.5" velocity="0.5"/>
+  </joint>
+
+  <joint name="lublock2lleg" type="revolute">
+    <parent link="lublock"/>
+    <child link="lleg"/>
+    <origin xyz="0 0 -0.010" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1000.0" lower="-1.5" upper="1.5" velocity="0.5"/>
+  </joint>
+
+  <joint name="lleg2lfoot" type="revolute">
+    <parent link="lleg"/>
+    <child link="lfoot"/>
+    <origin xyz="0.009 0 -0.210" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1000.0" lower="-1.5" upper="1.5" velocity="0.5"/>
+  </joint>
     
 </robot>
