@@ -12,6 +12,7 @@ rosrun collada_urdf_jsk_patch urdf_to_collada sample_model.urdf sample_model.dae
 rosrun euscollada collada2eus sample_model.dae sample_model.l
 ```
 ## esp32でrosを使う手順
+### 無線
 スケッチは```Serial.begin(57600)```としておくとラク
 
 PC
@@ -37,4 +38,12 @@ waiting for socket connection
 [INFO] [1640525688.638527]: calling startSerialClient
 ...
 ```
-なるべくwifiの電波の良いところで電源を入れ直すと繋がりやすい（都市伝説）
+
+### 有線
+スケッチで
+```c
+#undef ESP32
+#include <ros.h>
+#define ESP32
+```
+としておくと、```rosrun rosserial_python serial_node.py```で繋がる
