@@ -47,3 +47,23 @@ waiting for socket connection
 #define ESP32
 ```
 としておくと、```rosrun rosserial_python serial_node.py```で繋がる
+
+## サーボとワイヤーの初期化手順 12/27段階
+### 初期設定（一度だけ）
+```:init-pose```のときのサーボ角度を調べて記録する。
+- 手動で```:init-pose```の状態にする
+- wire_initializeスケッチを実行し、シリアルモニタを見る
+- 設定したいサーボの角度が60~300degであることを確認する（範囲外なら調整して範囲内にする）
+- 設定したいサーボの角度を記録する
+- wire_pullスケッチのangle_init_pose[]にその値を代入する
+### 通常時の設定
+- wire_initializeスケッチで、サーボの角度がangle_init_pose +- 50degの範囲にあることを確認する
+- 範囲外なら調整して範囲内にする
+- 範囲外の場合、wire_init_checkがfalseのままなので動かない。
+- (TODO) 範囲外の場合、調整用の角度情報をパブリッシュするようにする
+
+## スケッチ実行時の手順
+モータの電源が入っていることを確かめるためにやること
+ - wire_initializeやwire_pullスケッチを実行する
+ - モータの電源が入っていることを確認する（青いLEDが光る）
+ - GPIO2をGNDにつなげる
