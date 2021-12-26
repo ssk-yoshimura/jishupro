@@ -11,8 +11,13 @@ roscd jishupro/models
 rosrun collada_urdf_jsk_patch urdf_to_collada sample_model.urdf sample_model.dae
 rosrun euscollada collada2eus sample_model.dae sample_model.l
 ```
+https://github.com/ssk-yoshimura/jishupro/tree/master/jishupro/models にMakefileを書いたのでmakeすればできる
+
 ## esp32でrosを使う手順
 ### 無線
+
+https://github.com/ssk-yoshimura/jishupro/blob/master/jishupro/sketch/esp_ros_wifi_sample/esp_ros_wifi_sample.ino
+
 スケッチは```Serial.begin(57600)```としておくとラク
 
 PC
@@ -40,6 +45,9 @@ waiting for socket connection
 ```
 
 ### 有線
+
+https://github.com/ssk-yoshimura/jishupro/blob/master/jishupro/sketch/esp32_array_test/esp32_array_test.ino
+
 スケッチで
 ```c
 #undef ESP32
@@ -48,18 +56,21 @@ waiting for socket connection
 ```
 としておくと、```rosrun rosserial_python serial_node.py```で繋がる
 
+```Serial.begin```は書かない（重要）
+
 ## サーボとワイヤーの初期化手順 12/27段階
 ### 初期設定（一度だけ）
 ```:init-pose```のときのサーボ角度を調べて記録する。
 - 手動で```:init-pose```の状態にする
 - wire_initializeスケッチを実行し、シリアルモニタを見る
-- 設定したいサーボの角度が60~300degであることを確認する（範囲外なら調整して範囲内にする）
+- 設定したいサーボの角度が60~300degであることを確認する
+- 範囲外なら調整して範囲内にし、リセットボタンを押してやり直す
 - 設定したいサーボの角度を記録する
 - wire_pullスケッチのangle_init_pose[]にその値を代入する
 ### 通常時の設定
 - wire_initializeスケッチで、サーボの角度がangle_init_pose +- 50degの範囲にあることを確認する
-- 範囲外なら調整して範囲内にする
-- 範囲外の場合、wire_init_checkがfalseのままなので動かない。
+- 範囲外なら調整して範囲内にし、リセットボタンを押してやり直す
+- 範囲外の場合、wire_pullスケッチはwire_init_checkがfalseのままなので動かない。
 - (TODO) 範囲外の場合、調整用の角度情報をパブリッシュするようにする
 
 ## スケッチ実行時の手順
