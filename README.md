@@ -37,3 +37,4 @@ waiting for socket connection
 [INFO] [1640525688.638527]: calling startSerialClient
 ...
 ```
+使用PC以外から電源をとったほうが繋がりやすい気がする（都市伝説）
