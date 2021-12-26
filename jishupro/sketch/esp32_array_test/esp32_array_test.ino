@@ -2,8 +2,9 @@
  * rosserial::geometry_msgs::PoseArray Test
  * Sums an array, publishes sum 
  */
-
+#undef ESP32
 #include <ros.h>
+#define ESP32
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseArray.h>
 

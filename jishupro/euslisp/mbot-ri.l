@@ -7,6 +7,7 @@
 (send *mbot* :wire-init)
 ;; initialize wire
 (send *mbot* :init-pose)
+(send *mbot* :open-pose)
 
 (setq wire-list-arduino (float-vector 0 0 0 0 0 0 0 0 0 0))
 (setq wire-list-arduino-idx (list 2 0 4 1 3 7 5 9 6 8))

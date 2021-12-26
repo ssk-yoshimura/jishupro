@@ -18,13 +18,13 @@ int enc[10]; // エンコーダの値
 int enc_raw[10]; // エンコーダの生の値
 float angle[10]; // 角度 deg
 bool init_done = false;
-const int maxV = 675;
+const int maxV = 4096;
 
 // deg/s
 float vel_limit_max[10] = {16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0};
 float vel_limit_min[10] = {-20.-20,-20,-20,-20,-20,-20,-20,-20,-20,-20};
 // pulse (-100 to 100)
-int pulse_limit_max[10] = {17,0,17.0,17.0,17.0,17.0,17.0,17.0,17.0,17.0}; 
+int pulse_limit_max[10] = {17,17,17,17,17,17,17,17,17,17}; 
 int pulse_limit_min[10] = {-8,-8,-8,-8,-8,-8,-8,-8,-8,-8};
 
 int set_angle_count[10];
@@ -58,7 +58,8 @@ int b = 0;
 
 void loop() {
   read_enc();
-  set_angle(0, 200.0, -400.0, 50.0);
+  float azero = ((float)servo_zero[0]) / (float)maxV * 360.0;
+  set_angle(0, 100.0, azero-360.0, 50.0);
   // set_angle(0, 200.0, -400.0);
   Serial.print("angle is " + String(angle[0]) + "\n");
   delay(100);  
@@ -111,7 +112,9 @@ float calc_speed(int ch, int p){
 // use in loop
 // thre: end threshold
 // cthre: control start threshold
-int set_angle(int ch, float vel, float theta, float cthre = 30.0, float thre = 3.0){
+int set_angle(int ch, float vel, float theta, float cthre, float thre){
+  cthre = 30.0;
+  thre = 5.0;
    float dist = theta - angle[ch];
    if(abs(dist) < thre){
     set_angle_count[ch]++;
@@ -148,12 +151,14 @@ void servo_write(int ch, int p){ //動かすサーボチャンネルと角度を
   //delay(1);
 }
 
+int aaa[2] = {36,39};
+
 // enc、角度の初期化
 void init_enc() {
   int init_value = digitalRead(init_pin);
   if(init_value == 0){ //init
     for(int i=0;i<n;i++){
-      servo_zero[i] = analogRead(i); 
+      servo_zero[i] = analogRead(aaa[i]); 
       servo_n[i] = 0;
       enc[i] = servo_zero[i];
       enc_raw[i] = enc[i];
@@ -170,7 +175,7 @@ void init_enc() {
 void read_enc() {
   // 何周目かの更新
   for(int i=0;i<n;i++){
-    int enc_r = analogRead(i);
+    int enc_r = analogRead(aaa[i]);
     if(enc_r < 0) enc_r = 0;
     if(enc_r > maxV) enc_r = maxV;
     int min_dist = 10000;

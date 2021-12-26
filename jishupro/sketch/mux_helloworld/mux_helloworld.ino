@@ -1,8 +1,8 @@
-int s0 = 11;
-int s1 = 10;
-int s2 = 9;
-int s3 = 8;
-int SIG_PIN = 0;
+int s0 = 32;
+int s1 = 35;
+int s2 = 34;
+int s3 = 39;
+int SIG_PIN = 36;
 
 void setup() {
   // put your setup code here, to run once:

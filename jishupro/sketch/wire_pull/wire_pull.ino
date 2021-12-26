@@ -1,6 +1,8 @@
 #include <Wire.h>
 #include <PCA9685.h>            //PCA9685用ヘッダーファイル（秋月電子通商作成）
+#undef ESP32
 #include <ros.h>
+#define ESP32
 #include <std_msgs/Float32MultiArray.h>
 
 PCA9685 pwm = PCA9685(0x40);    //PCA9685のアドレス指定（アドレスジャンパ未接続時）
@@ -13,35 +15,35 @@ PCA9685 pwm = PCA9685(0x40);    //PCA9685のアドレス指定（アドレスジ
 
 const int n=2; // サーボのこすう
 
-const int init_pin = 7; // サーボ初期化スイッチ入力
+const int init_pin = 2; // サーボ初期化スイッチ入力
 int servo_zero[10]; // サーボの初期角度
 int servo_n[10]; // サーボのかいてんすう、最初0をかていする
 int enc[10]; // エンコーダの値
 int enc_raw[10]; // エンコーダの生の値
 float angle[10]; // 角度 deg
 bool init_done = false;
-const int maxV = 675;
+const int maxV = 4096;
 
 // deg/s
 float vel_limit_max[10] = {16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0};
 float vel_limit_min[10] = {-20.-20,-20,-20,-20,-20,-20,-20,-20,-20,-20};
 // pulse (-100 to 100)
-int pulse_limit_max[10] = {17,0,17.0,17.0,17.0,17.0,17.0,17.0,17.0,17.0}; 
+int pulse_limit_max[10] = {17,17,17,17,17,17,17,17,17,17}; 
 int pulse_limit_min[10] = {-8,-8,-8,-8,-8,-8,-8,-8,-8,-8};
 
 int set_angle_count[10];
-int set_angle(int ch, float vel, float theta, float cthre = 30.0, float thre = 3.0);
+int set_angle(int ch, float vel, float theta, float cthre=30.0, float thre=5.0);
 
 float wire2angle(int ch, float w);
 float angle2wire(int ch, float agl);
 
 float vels[30]; // 速度測定用
 
-const int s0 = 11;
-const int s1 = 10;
-const int s2 = 9;
-const int s3 = 8;
-const int SIG_PIN = 0;
+const int s0 = 32;
+const int s1 = 25;
+const int s2 = 34;
+const int s3 = 39;
+const int SIG_PIN = 36;
 
 ros::NodeHandle nh;
 std_msgs::Float32MultiArray wirelen;
@@ -49,6 +51,7 @@ ros::Publisher p("arduino", &wirelen);
 float wire_list_goal[10];
 
 //init-poseのときのwire-list
+// eusで計算する
 const float wire_init_pose[10] = {
   97.33,
   53.8,
@@ -63,9 +66,10 @@ const float wire_init_pose[10] = {
 };
 
 // init-poseのときのangle
+// wire_initializeで求める
 const float angle_init_pose[10] = {
-  244.27,
-  245.87,
+  84.64, 
+  171.65,
   0,0,0,0,0,0,0,0
 };
 
@@ -94,9 +98,10 @@ void messageCb(const std_msgs::Float32MultiArray& msg){
   }
 }
 
-ros::Subscriber<std_msgs::Float32MultiArray> s("wires", messageCb);
+ros::Subscriber<std_msgs::Float32MultiArray> s("wireus", messageCb);
 
 void setup() {
+ // Serial.begin(57600);
  pwm.begin();                   //初期設定 (アドレス0x40用)
  pwm.setPWMFreq(60);            //PWM周期を60Hzに設定 (アドレス0x40用)
  pinMode(init_pin, INPUT_PULLUP);
@@ -144,12 +149,19 @@ void loop() {
     delay(100);
     return;
   }
-  digitalWrite(13,HIGH);
-  set_wire();
+  // digitalWrite(13,HIGH);
+  // set_wire();
   // wirelen.data[0] = wire2angle(0, wire_list_goal[0]);
+  for(int i=0;i<n;i++){ // wire
+    float angle_goal = wire2angle(i, wire_list_goal[i]);
+    set_angle(i, 50.0, angle_goal);
+    // wirelen.data[i] = angle2wire(i, angle[i]); // 現在の長さ
+    // wirelen.data[i] = wire_list_goal[i]; // 目標の長さ
+    wirelen.data[i] = wire_list_goal[i] - angle2wire(i, angle[i]); // 現在と目標の差分
+  }
   p.publish(&wirelen);
   nh.spinOnce();
-  delay(500);  
+  delay(100);  
 }
 
 // vel[deg/s] to pulse in (-100,100)
@@ -169,7 +181,10 @@ int vel2pulse(int ch, float vel){
 // use in loop
 // thre: end threshold
 // cthre: control start threshold
-int set_angle(int ch, float vel, float theta, float cthre = 30.0, float thre = 3.0){
+int set_angle(int ch, float vel, float theta, float cthre, float thre){
+
+  cthre = 30.0;
+  thre = 5.0;
    float dist = theta - angle[ch];
    if(abs(dist) < thre){
     set_angle_count[ch]++;
@@ -198,15 +213,15 @@ int set_angle(int ch, float vel, float theta, float cthre = 30.0, float thre = 3
    return set_angle_count[ch];
 }
 
+// set wire using ros
 void set_wire(){
-  // wire_list_goal[] : goal length
+  // wire_list_goal[] : goal length, from eus
   // wire_init_pose[] : wire length when init-pose
   // angle_init_pose[] : servo angle when init-pose
   // pull_direction[] : pull direction
   for(int i=0;i<n;i++){
     float angle_goal = wire2angle(i, wire_list_goal[i]);
-    // wirelen.data[i] = angle_goal;
-    set_angle(i, 50.0, angle_goal);
+    set_angle(i, 50.0, angle_goal,0.0,0.0);
   }
 }
 

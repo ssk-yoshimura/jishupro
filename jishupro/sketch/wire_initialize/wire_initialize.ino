@@ -11,20 +11,20 @@ PCA9685 pwm = PCA9685(0x40);    //PCA9685のアドレス指定（アドレスジ
 
 const int n=2; // サーボのこすう
 
-const int init_pin = 7; // サーボ初期化スイッチ入力
+const int init_pin = 2; // サーボ初期化スイッチ入力
 int servo_zero[10]; // サーボの初期角度
 int servo_n[10]; // サーボのかいてんすう、最初0をかていする
 int enc[10]; // エンコーダの値
 int enc_raw[10]; // エンコーダの生の値
 float angle[10]; // 角度 deg
 bool init_done = false;
-const int maxV = 675;
+const int maxV = 4096;
 
 // deg/s
 float vel_limit_max[10] = {16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0};
 float vel_limit_min[10] = {-20.-20,-20,-20,-20,-20,-20,-20,-20,-20,-20};
 // pulse (-100 to 100)
-int pulse_limit_max[10] = {17,0,17.0,17.0,17.0,17.0,17.0,17.0,17.0,17.0}; 
+int pulse_limit_max[10] = {17,17,17,17,17,17,17,17,17,17}; 
 int pulse_limit_min[10] = {-8,-8,-8,-8,-8,-8,-8,-8,-8,-8};
 
 int set_angle_count[10];
@@ -32,11 +32,11 @@ int set_angle(int ch, float vel, float theta, float cthre = 30.0, float thre = 3
 
 float vels[30]; // 速度測定用
 
-const int s0 = 11;
-const int s1 = 10;
-const int s2 = 9;
-const int s3 = 8;
-const int SIG_PIN = 0;
+const int s0 = 32;
+const int s1 = 25;
+const int s2 = 34;
+const int s3 = 39;
+const int SIG_PIN = 36;
 
 void setup() {
  pwm.begin();                   //初期設定 (アドレス0x40用)
@@ -70,7 +70,7 @@ void loop() {
   if(check_initialize){
     Serial.print("   test passed\n");
   }else{
-    Serial.print("   test FAILED!!!!! you must rewrite program\n");
+    Serial.print("   test FAILED!!!!! you must rewrite program or reset\n");
   }
   /*
   for(int i=0;i<n;i++){
@@ -128,7 +128,7 @@ float calc_speed(int ch, int p){
 // use in loop
 // thre: end threshold
 // cthre: control start threshold
-int set_angle(int ch, float vel, float theta, float cthre = 30.0, float thre = 3.0){
+int set_angle(int ch, float vel, float theta, float cthre, float thre){
    float dist = theta - angle[ch];
    if(abs(dist) < thre){
     set_angle_count[ch]++;
