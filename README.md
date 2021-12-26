@@ -29,7 +29,7 @@ Fork_server is:  False
 waiting for socket connection
 ```
 
-ここでESP32の電源を入れる（重要）
+ここでESP32の電源を入れ直す（重要）
 
 少し待つと繋がる
 ```
