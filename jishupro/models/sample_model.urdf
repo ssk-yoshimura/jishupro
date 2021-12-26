@@ -119,7 +119,7 @@
     <child link="rfoot"/>
     <origin xyz="0.009 0 -0.210" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
-    <limit effort="1000.0" lower="-1.5" upper="1.5" velocity="0.5"/>
+    <limit effort="1000.0" lower="-2.72" upper="1.5" velocity="0.5"/>
   </joint>
 
   <joint name="root2lublock" type="revolute">
@@ -143,7 +143,7 @@
     <child link="lfoot"/>
     <origin xyz="0.009 0 -0.210" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
-    <limit effort="1000.0" lower="-1.5" upper="1.5" velocity="0.5"/>
+    <limit effort="1000.0" lower="-2.72" upper="1.5" velocity="0.5"/>
   </joint>
     
 </robot>

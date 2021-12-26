@@ -21,11 +21,11 @@ bool init_done = false;
 const int maxV = 675;
 
 // deg/s
-float vel_limit_max[10] = {16.0,0,0,0,0,0,0,0,0,0};
-float vel_limit_min[10] = {-20.0,0,0,0,0,0,0,0,0,0};
+float vel_limit_max[10] = {16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0};
+float vel_limit_min[10] = {-20.-20,-20,-20,-20,-20,-20,-20,-20,-20,-20};
 // pulse (-100 to 100)
-int pulse_limit_max[10] = {17,0,0,0,0,0,0,0,0,0}; 
-int pulse_limit_min[10] = {-8,0,0,0,0,0,0,0,0,0};
+int pulse_limit_max[10] = {17,0,17.0,17.0,17.0,17.0,17.0,17.0,17.0,17.0}; 
+int pulse_limit_min[10] = {-8,-8,-8,-8,-8,-8,-8,-8,-8,-8};
 
 int set_angle_count[10];
 int set_angle(int ch, float vel, float theta, float cthre = 30.0, float thre = 3.0);

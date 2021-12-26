@@ -1,6 +1,6 @@
-(load "../models/mbot.l")
+(Load "../models/mbot.l")
 (mbot)
-(send *mbot* :open-pose)
+(send *mbot* :init-pose)
 ;; (send *mbot* :wire-init)
 
 ;; (draw-wire-end)
@@ -19,6 +19,12 @@
     (list x0 y0 x1 y1)))
 
 (defmethod mbot-robot
+  ;; 0-4:right 5-9:left
+  ;; 0: elbow-front
+  ;; 1: elbow-back
+  ;; 2: shoulder-front
+  ;; 3: shoulder-back
+  ;; 4: shoulder
   (:wire-init
    ()
 ;;   (send self :zero-pose)
