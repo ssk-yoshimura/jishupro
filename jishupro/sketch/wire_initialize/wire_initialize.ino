@@ -1,3 +1,4 @@
+
 #include <Wire.h>
 #include <PCA9685.h>            //PCA9685用ヘッダーファイル（秋月電子通商作成）
 
@@ -9,7 +10,7 @@ PCA9685 pwm = PCA9685(0x40);    //PCA9685のアドレス指定（アドレスジ
 #define SERVOMIN 246            //最小パルス幅 (標準的なサーボパルスに設定)
 #define SERVOMAX 492            //最大パルス幅 (標準的なサーボパルスに設定)
 
-const int n=2; // サーボのこすう
+const int n=5; // サーボのこすう
 
 const int init_pin = 2; // サーボ初期化スイッチ入力
 int servo_zero[10]; // サーボの初期角度
@@ -32,20 +33,26 @@ int set_angle(int ch, float vel, float theta, float cthre = 30.0, float thre = 3
 
 float vels[30]; // 速度測定用
 
+/*
 const int s0 = 32;
 const int s1 = 25;
 const int s2 = 34;
 const int s3 = 39;
 const int SIG_PIN = 36;
+*/
+
+const int enc_pin[10] = {12, 14, 27, 26, 25, 33, 32, 35, 34, 39};
 
 void setup() {
  pwm.begin();                   //初期設定 (アドレス0x40用)
  pwm.setPWMFreq(60);            //PWM周期を60Hzに設定 (アドレス0x40用)
  pinMode(init_pin, INPUT_PULLUP);
+ /*
  pinMode(s0, OUTPUT);
  pinMode(s1, OUTPUT);
  pinMode(s2, OUTPUT);
  pinMode(s3, OUTPUT);
+ */
  Serial.begin(9600);
  for(int i=0;i<n;i++){
     servo_write(i, 0);
@@ -62,7 +69,7 @@ void loop() {
   read_enc();
   bool check_initialize = true;
   for(int i=0;i<n;i++){
-    Serial.print(String(angle[i]) + " ");
+    Serial.print(String(angle[i]) + ", ");
     if(angle[i] < 60 || angle[i] > 300){
       check_initialize = false;
     }
@@ -165,20 +172,24 @@ void servo_write(int ch, int p){ //動かすサーボチャンネルと角度を
   //delay(1);
 }
 
+/*
 int muxRead(int m){
   digitalWrite(s0, (m>>0 & 1));
   digitalWrite(s1, (m>>1 & 1));
   digitalWrite(s2, (m>>2 & 1));
   digitalWrite(s3, (m>>3 & 1));
+  delay(10);
   return analogRead(SIG_PIN);
 }
+*/
 
 // enc、角度の初期化
 void init_enc() {
   int init_value = digitalRead(init_pin);
   if(init_value == 0){ //init
     for(int i=0;i<n;i++){
-      servo_zero[i] = muxRead(i); 
+      // servo_zero[i] = muxRead(i); 
+      servo_zero[i] = analogRead(enc_pin[i]);
       servo_n[i] = 0;
       enc[i] = servo_zero[i];
       enc_raw[i] = enc[i];
@@ -195,8 +206,8 @@ void init_enc() {
 void read_enc() {
   // 何周目かの更新
   for(int i=0;i<n;i++){
-    // int enc_r = analogRead(i);
-    int enc_r = muxRead(i);
+    int enc_r = analogRead(enc_pin[i]);
+    // int enc_r = muxRead(i);
     if(enc_r < 0) enc_r = 0;
     if(enc_r > maxV) enc_r = maxV;
     int min_dist = 10000;

@@ -13,7 +13,7 @@ PCA9685 pwm = PCA9685(0x40);    //PCA9685のアドレス指定（アドレスジ
 #define SERVOMIN 246            //最小パルス幅 (標準的なサーボパルスに設定)
 #define SERVOMAX 492            //最大パルス幅 (標準的なサーボパルスに設定)
 
-const int n=2; // サーボのこすう
+const int n=5; // サーボのこすう
 
 const int init_pin = 2; // サーボ初期化スイッチ入力
 int servo_zero[10]; // サーボの初期角度
@@ -39,11 +39,16 @@ float angle2wire(int ch, float agl);
 
 float vels[30]; // 速度測定用
 
+/*
 const int s0 = 32;
 const int s1 = 25;
 const int s2 = 34;
 const int s3 = 39;
 const int SIG_PIN = 36;
+*/
+
+const int enc_pin[10] = {12, 14, 27, 26, 25, 33, 32, 35, 34, 39};
+
 
 ros::NodeHandle nh;
 std_msgs::Float32MultiArray wirelen;
@@ -56,29 +61,28 @@ const float wire_init_pose[10] = {
   97.33,
   53.8,
   37.7,
-  178.34,
+  266.1,
   59.5,
   97.3,
   53.8,
   37.7,
-  178.34,
+  266.1,
   59.5
 };
 
 // init-poseのときのangle
 // wire_initializeで求める
 const float angle_init_pose[10] = {
-  84.64, 
-  171.65,
-  0,0,0,0,0,0,0,0
+  199.07, 110.13, 242.05, 230.62, 151.87,
+  0,0,0,0,0
 };
 
 // サーボ回転角の係数
 // pull when counterclockwise : 1
 // pull when clockwise : -1
 const int pull_direction[10] = {
-  1,-1,
-  1,1,1,1,1,1,1,1
+  1,1,-1,-1,-1,
+  1,1,1,1,1
 };
 
 float wire_list[10];
@@ -105,10 +109,12 @@ void setup() {
  pwm.begin();                   //初期設定 (アドレス0x40用)
  pwm.setPWMFreq(60);            //PWM周期を60Hzに設定 (アドレス0x40用)
  pinMode(init_pin, INPUT_PULLUP);
+ /*
  pinMode(s0, OUTPUT);
  pinMode(s1, OUTPUT);
  pinMode(s2, OUTPUT);
  pinMode(s3, OUTPUT);
+ */
  //pinMode(13, OUTPUT);
  // digitalWrite(13,LOW);
  for(int i=0;i<n;i++){
@@ -154,7 +160,7 @@ void loop() {
   // wirelen.data[0] = wire2angle(0, wire_list_goal[0]);
   for(int i=0;i<n;i++){ // wire
     float angle_goal = wire2angle(i, wire_list_goal[i]);
-    set_angle(i, 50.0, angle_goal);
+    set_angle(i, 100.0, angle_goal);
     // wirelen.data[i] = angle2wire(i, angle[i]); // 現在の長さ
     // wirelen.data[i] = wire_list_goal[i]; // 目標の長さ
     wirelen.data[i] = wire_list_goal[i] - angle2wire(i, angle[i]); // 現在と目標の差分
@@ -245,6 +251,7 @@ void servo_write(int ch, int p){ //動かすサーボチャンネルと角度を
   //delay(1);
 }
 
+/*
 int muxRead(int m){
   digitalWrite(s0, (m>>0 & 1));
   digitalWrite(s1, (m>>1 & 1));
@@ -252,6 +259,7 @@ int muxRead(int m){
   digitalWrite(s3, (m>>3 & 1));
   return analogRead(SIG_PIN);
 }
+*/
 
 // enc、角度の初期化
 void init_enc() {
@@ -259,7 +267,8 @@ void init_enc() {
   bool wire_check_tmp = true;
   if(init_value == 0){ //init
     for(int i=0;i<n;i++){
-      servo_zero[i] = muxRead(i); 
+      // servo_zero[i] = muxRead(i); 
+      servo_zero[i] = analogRead(enc_pin[i]);
       servo_n[i] = 0;
       enc[i] = servo_zero[i];
       enc_raw[i] = enc[i];
@@ -281,7 +290,8 @@ void read_enc() {
   // 何周目かの更新
   for(int i=0;i<n;i++){
     // int enc_r = analogRead(i);
-    int enc_r = muxRead(i);
+    // int enc_r = muxRead(i);
+    int enc_r = analogRead(enc_pin[i]);
     if(enc_r < 0) enc_r = 0;
     if(enc_r > maxV) enc_r = maxV;
     int min_dist = 10000;

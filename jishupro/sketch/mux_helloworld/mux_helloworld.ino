@@ -17,7 +17,7 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   digitalWrite(s0, LOW);
-  digitalWrite(s1, LOW);
+  digitalWrite(s1, HIGH);
   digitalWrite(s2, LOW);
   digitalWrite(s3, LOW);
   int val = analogRead(SIG_PIN);
