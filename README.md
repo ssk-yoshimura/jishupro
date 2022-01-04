@@ -58,9 +58,19 @@ https://github.com/ssk-yoshimura/jishupro/blob/master/jishupro/sketch/esp32_arra
 
 ```Serial.begin```は書かない（重要）
 
-## サーボとワイヤーの初期化手順 12/27段階
+## サーボとワイヤーの初期化手順
 ### 初期設定（一度だけ）
-```:init-pose```のときのサーボ角度を調べて記録する。
+```:init-pose```のときのワイヤー長とサーボ角度を調べて記録する。
+#### eusの設定
+```
+roseus
+(load "mbot-utils.l)
+(send *mbot* :wire-init)
+(send *mbot* :init-pose)
+(send *mbot* :wire-calc)
+```
+これでワイヤー初期長さが表示されるので、wire_pullスケッチのwire_init_pose[]にその値を代入する
+#### esp32の設定
 - 手動で```:init-pose```の状態にする
 - wire_initializeスケッチを実行し、シリアルモニタを見る
 - 設定したいサーボの角度が60~300degであることを確認する
