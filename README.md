@@ -65,9 +65,12 @@ https://github.com/ssk-yoshimura/jishupro/blob/master/jishupro/sketch/esp32_arra
 ```
 roseus
 (load "mbot-utils.l)
+(load "mbot-ri.l")
 (send *mbot* :wire-init)
 (send *mbot* :init-pose)
 (send *mbot* :wire-calc)
+(wire-list-to-arduino)
+wire-list-arduino
 ```
 これでワイヤー初期長さが表示されるので、wire_pullスケッチのwire_init_pose[]にその値を代入する
 #### esp32の設定
