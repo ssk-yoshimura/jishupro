@@ -9,10 +9,10 @@ larm:
 
 rarm-end-coords:
   parent : rfoot
-  translate : [-0.005, 0, -0.2137]
+  translate : [-0.005, 0, -0.2212]
 larm-end-coords:
   parent : lfoot
-  translate : [-0.005, 0, -0.2137]
+  translate : [-0.005, 0, -0.2212]
 
 angle-vector:
   zero-pose : [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

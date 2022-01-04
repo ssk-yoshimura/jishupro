@@ -41,11 +41,11 @@
    (setq lelbow-back-end (wire-assoc (send self :lfoot_lk) -19.75 0 -69.7))
    (setq lelbow-joint (wire-assoc (send self :lfoot_lk) 0 0 0))
 
-   (setq ref-start (wire-assoc (send self :root_lk) 217.25 -102 428.4))
-   (setq rs-start (wire-assoc (send self :root_lk) 207.5 -102 428.4))
-   (setq reb-start (wire-assoc (send self :root_lk) 197.75 -102 428.4))
-   (setq rsb-start (wire-assoc (send self :root_lk) 157.5 -77.5 399.4))
-   (setq rsf-start (wire-assoc (send self :root_lk) 257.5 -77.5 399.4))
+   (setq ref-start (wire-assoc (send self :root_lk) 217.25 -102 433.4))
+   (setq rs-start (wire-assoc (send self :root_lk) 207.5 -102 433.4))
+   (setq reb-start (wire-assoc (send self :root_lk) 197.75 -102 433.4))
+   (setq rsb-start (wire-assoc (send self :root_lk) 159.56 -89.66 400.8))
+   (setq rsf-start (wire-assoc (send self :root_lk) 255.43 -89.66 400.8))
 
    (setq ref-end (wire-assoc (send self :rleg_lk) 13 -16 38.64))
    (setq rs-end (wire-assoc (send self :rleg_lk) 0 -16 39.8))
@@ -53,11 +53,11 @@
    (setq rsf-end (wire-assoc (send self :rleg_lk) 10 10 -58.5))
    (setq rsb-end (wire-assoc (send self :rleg_lk) -10 10 -58.5))
 
-   (setq lef-start (wire-assoc (send self :root_lk) 217.25 102 428.4))
-   (setq ls-start (wire-assoc (send self :root_lk) 207.5 102 428.4))
-   (setq leb-start (wire-assoc (send self :root_lk) 197.75 102 428.4))
-   (setq lsb-start (wire-assoc (send self :root_lk) 157.5 77.5 399.4))
-   (setq lsf-start (wire-assoc (send self :root_lk) 257.5 77.5 399.4))
+   (setq lef-start (wire-assoc (send self :root_lk) 217.25 102 433.4))
+   (setq ls-start (wire-assoc (send self :root_lk) 207.5 102 433.4))
+   (setq leb-start (wire-assoc (send self :root_lk) 197.75 102 433.4))
+   (setq lsb-start (wire-assoc (send self :root_lk) 159.56 89.66 400.8))
+   (setq lsf-start (wire-assoc (send self :root_lk) 255.43 89.66 400.8))
 
    (setq lef-end (wire-assoc (send self :lleg_lk) 13 16 38.64))
    (setq ls-end (wire-assoc (send self :lleg_lk) 0 16 39.8))
@@ -184,6 +184,11 @@
 		 relbow-front-end
 		 relbow-back-end
 		 relbow-joint
+		 lelbow-front-start
+		 lelbow-back-start
+		 lelbow-front-end
+		 lelbow-back-end
+		 lelbow-joint
 		 ref-start
 		 rs-start
 		 reb-start
@@ -204,9 +209,7 @@
 		 lsb-end
 		 lsf-start
 		 lsf-end
-		 ;relbow-c
-		 ;relbow-d
-		 ;relbow-e
-		 ;relbow-f
+		 (send *mbot* :rarm-end-coords)
+		 (send *mbot* :larm-end-coords)
 		 ))
   )
