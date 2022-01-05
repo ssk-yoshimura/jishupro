@@ -61,7 +61,7 @@ https://github.com/ssk-yoshimura/jishupro/blob/master/jishupro/sketch/esp32_arra
 ## サーボとワイヤーの初期化手順
 ### 初期設定（一度だけ）
 ```:init-pose```のときのワイヤー長とサーボ角度を調べて記録する。
-#### eusの設定
+#### eusの設定(eusモデル、初期ポーズ変更時以外はやらなくてよい)
 ```
 roseus
 (load "mbot-utils.l)
@@ -75,9 +75,9 @@ wire-list-arduino
 これでワイヤー初期長さが表示されるので、wire_pullスケッチのwire_init_pose[]にその値を代入する
 #### esp32の設定
 - 手動で```:init-pose```の状態にする
+  - ここでワイヤーをしっかり張ることが超重要
 - wire_initializeスケッチを実行し、シリアルモニタを見る
-- 設定したいサーボの角度が60~300degであることを確認する
-- 範囲外なら調整して範囲内にし、リセットボタンを押してやり直す
+- エンコーダの値が表示されるので、異常がないことを確認する
 - 設定したいサーボの角度を記録する
 - wire_pullスケッチのangle_init_pose[]にその値を代入する
 ### 通常時の設定
