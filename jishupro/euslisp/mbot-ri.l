@@ -3,7 +3,7 @@
 (when (not (boundp '*mbot*))
   (load "mbot-utils.l")
   (mbot)
-  (send *mbot* :wire-init)
+k  (send *mbot* :wire-init)
   (send *mbot* :init-pose)
   )
 

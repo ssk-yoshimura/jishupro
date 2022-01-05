@@ -3,6 +3,7 @@
 #include <PCA9685.h>            //PCA9685用ヘッダーファイル（秋月電子通商作成）
 
 PCA9685 pwm = PCA9685(0x40);    //PCA9685のアドレス指定（アドレスジャンパ未接続時）
+PCA9685 pwm2 = PCA9685(0x41);
 
 // パルスの割合
 // 4096がmax
@@ -10,7 +11,7 @@ PCA9685 pwm = PCA9685(0x40);    //PCA9685のアドレス指定（アドレスジ
 #define SERVOMIN 246            //最小パルス幅 (標準的なサーボパルスに設定)
 #define SERVOMAX 492            //最大パルス幅 (標準的なサーボパルスに設定)
 
-const int n=5; // サーボのこすう
+const int n=10; // サーボのこすう
 
 const int init_pin = 2; // サーボ初期化スイッチ入力
 int servo_zero[10]; // サーボの初期角度
@@ -41,7 +42,8 @@ const int s3 = 39;
 const int SIG_PIN = 36;
 */
 
-const int enc_pin[10] = {12, 14, 27, 26, 25, 33, 32, 35, 34, 39};
+// const int enc_pin[10] = {36, 39, 34, 35, 32, 33, 25, 26, 27, 14};
+const int enc_pin[10] = {36, 39, 34, 35, 32, 14, 27, 26, 25, 33};
 
 void setup() {
  pwm.begin();                   //初期設定 (アドレス0x40用)
@@ -168,7 +170,11 @@ void servo_write(int ch, int p){ //動かすサーボチャンネルと角度を
   if(p > 100) p = 100;
   if(p < -100) p = -100;
   p = map(p, -100, 100, SERVOMIN, SERVOMAX); //角度（0～180）をPWMのパルス幅（150～600）に変換
-  pwm.setPWM(ch, 0, p);
+  if(ch < 5){
+    pwm.setPWM(ch, 0, p);
+  }else{
+    pwm2.setPWM(ch-5, 0, p);
+  }
   //delay(1);
 }
 

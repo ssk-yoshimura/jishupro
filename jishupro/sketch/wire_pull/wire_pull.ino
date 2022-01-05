@@ -6,6 +6,9 @@
 #include <std_msgs/Float32MultiArray.h>
 
 PCA9685 pwm = PCA9685(0x40);    //PCA9685のアドレス指定（アドレスジャンパ未接続時）
+PCA9685 pwm2 = PCA9685(0x41);
+
+
 
 // パルスの割合
 // 4096がmax
@@ -13,7 +16,7 @@ PCA9685 pwm = PCA9685(0x40);    //PCA9685のアドレス指定（アドレスジ
 #define SERVOMIN 246            //最小パルス幅 (標準的なサーボパルスに設定)
 #define SERVOMAX 492            //最大パルス幅 (標準的なサーボパルスに設定)
 
-const int n=5; // サーボのこすう
+const int n=10; // サーボのこすう
 
 const int init_pin = 2; // サーボ初期化スイッチ入力
 int servo_zero[10]; // サーボの初期角度
@@ -47,7 +50,8 @@ const int s3 = 39;
 const int SIG_PIN = 36;
 */
 
-const int enc_pin[10] = {12, 14, 27, 26, 25, 33, 32, 35, 34, 39};
+// const int enc_pin[10] = {12, 14, 27, 26, 25, 33, 32, 35, 34, 39};
+const int enc_pin[10] = {36, 39, 34, 35, 32, 14, 27, 26, 25, 33};
 
 
 ros::NodeHandle nh;
@@ -65,8 +69,7 @@ const float wire_init_pose[10] = {
 // init-poseのときのangle
 // wire_initializeで求める
 const float angle_init_pose[10] = {
-  199.07, 110.13, 242.05, 230.62, 151.87,
-  0,0,0,0,0
+  174.55, 168.13, 264.90, 207.60, 167.26, 263.58, 189.84, 143.09, 130.87, 130.43
 };
 
 // サーボ回転角の係数
@@ -74,7 +77,7 @@ const float angle_init_pose[10] = {
 // pull when clockwise : -1
 const int pull_direction[10] = {
   1,1,-1,-1,-1,
-  1,1,1,1,1
+  -1,-1,1,1,1
 };
 
 float wire_list[10];
@@ -100,6 +103,8 @@ void setup() {
  // Serial.begin(57600);
  pwm.begin();                   //初期設定 (アドレス0x40用)
  pwm.setPWMFreq(60);            //PWM周期を60Hzに設定 (アドレス0x40用)
+ pwm2.begin();
+ pwm2.setPWMFreq(60);
  pinMode(init_pin, INPUT_PULLUP);
  /*
  pinMode(s0, OUTPUT);
@@ -239,7 +244,11 @@ void servo_write(int ch, int p){ //動かすサーボチャンネルと角度を
   if(p > 100) p = 100;
   if(p < -100) p = -100;
   p = map(p, -100, 100, SERVOMIN, SERVOMAX); //角度（0～180）をPWMのパルス幅（150～600）に変換
-  pwm.setPWM(ch, 0, p);
+  if(ch < 5){
+    pwm.setPWM(ch, 0, p);
+  }else{
+    pwm2.setPWM(ch-5, 0, p);
+  }
   //delay(1);
 }
 
@@ -264,6 +273,42 @@ void init_enc() {
       servo_n[i] = 0;
       enc[i] = servo_zero[i];
       enc_raw[i] = enc[i];
+      angle[i] = ((float)enc[i]) / (float)maxV * 360.0;
+      set_angle_count[i] = 0;
+      if(abs(angle[i] - angle_init_pose[i]) > 50){
+        wire_check_tmp = false;
+      }
+    }
+    // init成功
+    init_done = true;
+    wire_init_check = wire_check_tmp;
+  }
+}
+
+void init_enc_allrange() {
+  int init_value = digitalRead(init_pin);
+  bool wire_check_tmp = true;
+  if(init_value == 0){ //init
+    for(int i=0;i<n;i++){
+      // servo_zero[i] = muxRead(i); 
+      servo_zero[i] = analogRead(enc_pin[i]);
+      enc_raw[i] = servo_zero[i];
+
+      float min_dist = 10000;
+      int min_dist_idx = 0;
+      for(int j=-1;j<2;j++){
+        int enc_next = maxV * j + enc_raw[i];
+        float angle_next = ((float)enc_next) / (float)maxV * 360.0;
+        float angle_next_distance = abs(angle_next - angle_init_pose[i]);
+        if(angle_next_distance < min_dist){
+          min_dist = angle_next_distance;
+          min_dist_idx = j;
+        }
+      }
+      
+      servo_n[i] = min_dist_idx;
+      
+      enc[i] = servo_n[i] * maxV + enc_raw[i];
       angle[i] = ((float)enc[i]) / (float)maxV * 360.0;
       set_angle_count[i] = 0;
       if(abs(angle[i] - angle_init_pose[i]) > 50){
