@@ -59,17 +59,17 @@ std_msgs::Float32MultiArray wirelen;
 ros::Publisher p("arduino", &wirelen);
 float wire_list_goal[10];
 
-//init-poseのときのwire-list
-// eusで計算する
+//init-poseのときのwire-list-arduino
+// eusで計算する(:wire-calc後にwire-list-to-arduinoする)
 const float wire_init_pose[10] = {
-  90.4119, 53.7934, 37.7116, 266.061, 50.5836,
-  90.4119, 53.7934, 37.7116, 266.061, 50.5836
+  82.0293, 49.619, 34.055, 262.47, 61.8248,
+  82.0293, 49.619, 34.055, 262.47, 61.8248
 };
 
 // init-poseのときのangle
 // wire_initializeで求める
 const float angle_init_pose[10] = {
-  174.55, 168.13, 264.90, 207.60, 167.26, 263.58, 189.84, 143.09, 130.87, 130.43
+  120.32, 135.97, 332.93, 259.89, 230.89, 288.63, 264.38, 19.25, 60.47, 111.97
 };
 
 // サーボ回転角の係数
@@ -130,7 +130,8 @@ void setup() {
  }
 
  while(!init_done){
-    init_enc();
+    //init_enc();
+    init_enc_allrange();
  }
 }
 

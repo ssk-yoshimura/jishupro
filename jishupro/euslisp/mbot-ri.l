@@ -3,7 +3,7 @@
 (when (not (boundp '*mbot*))
   (load "mbot-utils.l")
   (mbot)
-k  (send *mbot* :wire-init)
+  (send *mbot* :wire-init)
   (send *mbot* :init-pose)
   )
 
@@ -19,11 +19,11 @@ k  (send *mbot* :wire-init)
   (dotimes (i 10)
     (setf (elt wire-list-arduino i) (elt wire-list (elt wire-list-arduino-idx i)))))
 
+(ros::roseus "eus")
+(ros::advertise "wireus" std_msgs::float32multiarray 1)
 (ros::roseus-add-msgs "std_msgs")
 
 (defun mbot2ri ()
-  (ros::roseus "eus")
-  (ros::advertise "wireus" std_msgs::float32multiarray 1)
   (ros::rate 10)
   ;;(do-until-key
   ;; (while (ros::ok)
