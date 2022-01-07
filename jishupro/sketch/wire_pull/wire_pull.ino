@@ -50,8 +50,8 @@ const int s3 = 39;
 const int SIG_PIN = 36;
 */
 
-// const int enc_pin[10] = {12, 14, 27, 26, 25, 33, 32, 35, 34, 39};
-const int enc_pin[10] = {36, 39, 34, 35, 32, 14, 27, 26, 25, 33};
+//const int enc_pin[10] = {36, 39, 34, 35, 32, 14, 27, 26, 25, 33};
+const int enc_pin[10] = {36, 39, 34, 35, 32, 33, 25, 26, 27, 14};
 
 
 ros::NodeHandle nh;
@@ -69,7 +69,9 @@ const float wire_init_pose[10] = {
 // init-poseのときのangle
 // wire_initializeで求める
 const float angle_init_pose[10] = {
-  120.32, 135.97, 332.93, 259.89, 230.89, 288.63, 264.38, 19.25, 60.47, 111.97
+  //120.32, 135.97, 332.93, 259.89, 230.89, 288.63, 264.38, 19.25, 60.47, 111.97
+  //71.89, 132.45, 348.93, 279.84, 246.09, 285.73, 307.18, 9.32, 42.45, 122.08
+  88.77, 176.92, 288.72, 227.90, 226.41, 231.77, 281.25, 0.00, 61.79, 143.53
 };
 
 // サーボ回転角の係数
@@ -246,22 +248,13 @@ void servo_write(int ch, int p){ //動かすサーボチャンネルと角度を
   if(p < -100) p = -100;
   p = map(p, -100, 100, SERVOMIN, SERVOMAX); //角度（0～180）をPWMのパルス幅（150～600）に変換
   if(ch < 5){
-    pwm.setPWM(ch, 0, p);
+    pwm.setPWM(15-ch, 0, p);
   }else{
     pwm2.setPWM(ch-5, 0, p);
   }
   //delay(1);
 }
 
-/*
-int muxRead(int m){
-  digitalWrite(s0, (m>>0 & 1));
-  digitalWrite(s1, (m>>1 & 1));
-  digitalWrite(s2, (m>>2 & 1));
-  digitalWrite(s3, (m>>3 & 1));
-  return analogRead(SIG_PIN);
-}
-*/
 
 // enc、角度の初期化
 void init_enc() {

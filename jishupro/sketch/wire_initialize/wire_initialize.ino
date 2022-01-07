@@ -42,8 +42,8 @@ const int s3 = 39;
 const int SIG_PIN = 36;
 */
 
-// const int enc_pin[10] = {36, 39, 34, 35, 32, 33, 25, 26, 27, 14};
-const int enc_pin[10] = {36, 39, 34, 35, 32, 14, 27, 26, 25, 33};
+const int enc_pin[10] = {36, 39, 34, 35, 32, 33, 25, 26, 27, 14};
+// const int enc_pin[10] = {36, 39, 34, 35, 32, 14, 27, 26, 25, 33};
 
 void setup() {
  pwm.begin();                   //初期設定 (アドレス0x40用)
@@ -171,7 +171,7 @@ void servo_write(int ch, int p){ //動かすサーボチャンネルと角度を
   if(p < -100) p = -100;
   p = map(p, -100, 100, SERVOMIN, SERVOMAX); //角度（0～180）をPWMのパルス幅（150～600）に変換
   if(ch < 5){
-    pwm.setPWM(ch, 0, p);
+    pwm.setPWM(15-ch, 0, p);
   }else{
     pwm2.setPWM(ch-5, 0, p);
   }

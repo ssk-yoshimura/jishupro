@@ -1,0 +1,4 @@
+mbot_rviz.launch
+
+
+FixedFrameでrootを選択する
