@@ -78,11 +78,10 @@ const float wire_init_pose[10] = {
 // init-poseのときのangle
 // wire_initializeで求める
 const float angle_init_pose[10] = {
-  //88.77, 176.92, 288.72, 227.90, 226.41, 231.77, 281.25, 0.00, 61.79, 143.53
-  //85.34, 177.19, 289.69, 223.33, 227.37, 234.05, 280.37, 0.00, 60.56, 147.92
-  //84.37, 251.72, 287.14, 209.71, 226.58, 234.40, 280.37, 0.00, 60.91, 148.54
   //85.78, 209.71, 289.69, 213.75, 227.81, 234.58, 280.72, 0.00, 61.26, 148.27
-  86.04, 199.86, 289.60, 212.34, 227.37, 234.05, 280.37, 0.00, 60.91, 148.27
+  //86.04, 199.86, 289.60, 212.34, 227.37, 234.05, 280.37, 0.00, 60.91, 148.27
+  //51.24, 136.41, 336.62, 269.21, 244.60, 234.76, 215.51, 0.00, 31.03, 148.18
+  65.21, 175.69, 306.04, 231.50, 221.92, 234.58, 217.35, 0.00, 30.15, 148.18
 };
 
 // サーボ回転角の係数
@@ -109,12 +108,13 @@ void messageCb(const std_msgs::Float32MultiArray& msg){
   }
 }
 
-float goal_sequence[30][12]; // (idx, time, wl)
+float goal_sequence[50][12]; // (idx, time, wl)
 int goal_sequence_length = 0;
 int get_sequence_state = 0; //0:no 1:getting 2:moving
 int get_sequence_count = 0;
 int seq_test = 0;
 int seq_crt_idx = 0;
+int goal_offset = 0;
 
 // angle-vector-sequence用
 void messageCbsequence(const std_msgs::Float32MultiArray& msg){
@@ -131,6 +131,7 @@ void messageCbsequence(const std_msgs::Float32MultiArray& msg){
     //seq_test++;
     if(msg.data[1] == -99){ //終了 & move start
       goal_sequence_length = msg.data[0];
+      goal_offset = msg.data[2];
       get_sequence_state = 2;
       seq_crt_idx = 0;
     }
@@ -227,9 +228,9 @@ void loop() {
       if(wl_err_max < 1.0){
         seq_crt_idx = 1;
         for(int i=0;i<n;i++){
-          float seq_t = goal_sequence[1][1] - goal_sequence[0][1];
-          float seq_l = abs(goal_sequence[1][i+2] - angle2wire(i, angle[i]));
-          set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI), wire2angle(i, goal_sequence[1][i+2]));
+          float seq_t = goal_sequence[1+goal_offset][1] - goal_sequence[0][1];
+          float seq_l = abs(goal_sequence[1+goal_offset][i+2] - angle2wire(i, angle[i]));
+          set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI), wire2angle(i, goal_sequence[1+goal_offset][i+2]));
         }
       }
     }
@@ -245,9 +246,10 @@ void loop() {
       }
       if(seq_update){
         for(int i=0;i<n;i++){
-          float seq_t = goal_sequence[seq_crt_idx+1][1] - 
+          int goal_idx_next = min(seq_crt_idx+1+goal_offset, goal_sequence_length-1);
+          float seq_t = goal_sequence[goal_idx_next][1] - 
             0.5*(goal_sequence[seq_crt_idx][1]-goal_sequence[seq_crt_idx-1][1]);
-          float seq_l = abs(goal_sequence[seq_crt_idx+1][i+2] - angle2wire(i, angle[i]));
+          float seq_l = abs(goal_sequence[goal_idx_next][i+2] - angle2wire(i, angle[i]));
           set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI) , wire2angle(i, goal_sequence[seq_crt_idx+1][i+2]));
         }
         seq_crt_idx++;
@@ -283,7 +285,7 @@ int vel2pulse(int ch, float vel){
 // cthre: control start threshold
 void set_angle(int ch, float vel, float theta, float cthre, float thre){
   // default
-  // cthre = 30.0;
+  // cthre = 10.0;
   // thre = 5.0;
   Rdata[ch].vel = vel;
   Rdata[ch].theta = theta;
@@ -300,8 +302,8 @@ void rotate_angle(){
     float thre = Rdata[ch].thre;
     
     // 安全
-    if(vel > 150) vel = 150;
-    if(vel < 30 && vel > 10)vel = 30;
+    if(vel > 200) vel = 200;
+    if(vel < 20 && vel > 10)vel = 20;
     if(vel < 0)vel *= -1.0;
 
   

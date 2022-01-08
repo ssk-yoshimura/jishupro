@@ -7,6 +7,8 @@
   (send *mbot* :init-pose)
   )
 
+(objects (list *mbot*))
+
 ;; (send *mbot* :wire-init)
 ;; initialize wire
 ;; (send *mbot* :init-pose)
@@ -38,7 +40,7 @@
     (ros::sleep))
   )
 
-(defun avs2wls (avs time_all)
+(defun avs2wls (avs time_all goal_offset)
   (setq wls-tmp ())
   (dotimes (i (length avs))
     (send *mbot* :angle-vector (elt avs i))
@@ -50,7 +52,7 @@
     (setq wl-tmp (reverse wl-tmp))
     (push wl-tmp wls-tmp)
     )
-  (push (list (length avs) -99.0) wls-tmp)
+  (push (list (length avs) -99.0 goal_offset) wls-tmp)
   (setq wls-tmp (reverse wls-tmp))
   wls-tmp)
 
