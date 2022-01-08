@@ -35,7 +35,16 @@ int pulse_limit_max[10] = {17,17,17,17,17,17,17,17,17,17};
 int pulse_limit_min[10] = {-8,-8,-8,-8,-8,-8,-8,-8,-8,-8};
 
 int set_angle_count[10];
-int set_angle(int ch, float vel, float theta, float cthre=30.0, float thre=5.0);
+void set_angle(int ch, float vel, float theta, float cthre=10.0, float thre=5.0);
+void rotate_angle();
+struct rotate_data{
+  float vel;
+  float theta;
+  float cthre;
+  float thre;
+};
+
+rotate_data Rdata[10];
 
 float wire2angle(int ch, float w);
 float angle2wire(int ch, float agl);
@@ -69,9 +78,11 @@ const float wire_init_pose[10] = {
 // init-poseのときのangle
 // wire_initializeで求める
 const float angle_init_pose[10] = {
-  //120.32, 135.97, 332.93, 259.89, 230.89, 288.63, 264.38, 19.25, 60.47, 111.97
-  //71.89, 132.45, 348.93, 279.84, 246.09, 285.73, 307.18, 9.32, 42.45, 122.08
-  88.77, 176.92, 288.72, 227.90, 226.41, 231.77, 281.25, 0.00, 61.79, 143.53
+  //88.77, 176.92, 288.72, 227.90, 226.41, 231.77, 281.25, 0.00, 61.79, 143.53
+  //85.34, 177.19, 289.69, 223.33, 227.37, 234.05, 280.37, 0.00, 60.56, 147.92
+  //84.37, 251.72, 287.14, 209.71, 226.58, 234.40, 280.37, 0.00, 60.91, 148.54
+  //85.78, 209.71, 289.69, 213.75, 227.81, 234.58, 280.72, 0.00, 61.26, 148.27
+  86.04, 199.86, 289.60, 212.34, 227.37, 234.05, 280.37, 0.00, 60.91, 148.27
 };
 
 // サーボ回転角の係数
@@ -90,7 +101,6 @@ bool wire_init_check = false;
 // pulley radius
 const float r_pulley = 11.0;
 
-// いまは返すだけ
 // ここでワイヤー長さを得て、角度を制御する
 void messageCb(const std_msgs::Float32MultiArray& msg){
   for(int i=0;i<msg.data_length;i++){
@@ -99,7 +109,43 @@ void messageCb(const std_msgs::Float32MultiArray& msg){
   }
 }
 
+float goal_sequence[30][12]; // (idx, time, wl)
+int goal_sequence_length = 0;
+int get_sequence_state = 0; //0:no 1:getting 2:moving
+int get_sequence_count = 0;
+int seq_test = 0;
+int seq_crt_idx = 0;
+
+// angle-vector-sequence用
+void messageCbsequence(const std_msgs::Float32MultiArray& msg){
+  if(msg.data[0] == 0.0){ // 受信開始
+    get_sequence_state = 1;
+    get_sequence_count = 0;
+    goal_sequence_length = 0;
+    for(int i=0;i<30;i++){
+      goal_sequence[i][0] = 0.0;
+      goal_sequence[i][1] = 0.0;
+    }
+  }
+  if(get_sequence_state == 1){ // 受信
+    //seq_test++;
+    if(msg.data[1] == -99){ //終了 & move start
+      goal_sequence_length = msg.data[0];
+      get_sequence_state = 2;
+      seq_crt_idx = 0;
+    }
+    for(int i=0;i<msg.data_length;i++){
+      goal_sequence[get_sequence_count][i] = msg.data[i];
+    }
+    if(get_sequence_count != (int)goal_sequence[get_sequence_count][0]){ //値が飛んだとき
+      get_sequence_state = 0;
+    }
+    get_sequence_count++;
+  }
+}
+
 ros::Subscriber<std_msgs::Float32MultiArray> s("wireus", messageCb);
+ros::Subscriber<std_msgs::Float32MultiArray> seq("wire_sequence", messageCbsequence);
 
 void setup() {
  // Serial.begin(57600);
@@ -108,16 +154,9 @@ void setup() {
  pwm2.begin();
  pwm2.setPWMFreq(60);
  pinMode(init_pin, INPUT_PULLUP);
- /*
- pinMode(s0, OUTPUT);
- pinMode(s1, OUTPUT);
- pinMode(s2, OUTPUT);
- pinMode(s3, OUTPUT);
- */
- //pinMode(13, OUTPUT);
- // digitalWrite(13,LOW);
  for(int i=0;i<n;i++){
   wire_list_goal[i] = wire_init_pose[i];
+  set_angle(i, 50, wire2angle(i, wire_init_pose[i]));
  }
  nh.initNode();
  wirelen.data = (float*)malloc(sizeof(float) * 10);
@@ -127,6 +166,7 @@ void setup() {
  }
  nh.advertise(p);
  nh.subscribe(s);
+ nh.subscribe(seq);
  for(int i=0;i<n;i++){
     servo_write(i, 0);
  }
@@ -150,21 +190,75 @@ void loop() {
      for(int i=0;i<wirelen.data_length;i++){
         wirelen.data[i] = -99.0;
      } 
+     wirelen.data[0] = (float)goal_sequence_length;
     p.publish(&wirelen);
     nh.spinOnce();
     delay(100);
     return;
   }
-  // digitalWrite(13,HIGH);
-  // set_wire();
-  // wirelen.data[0] = wire2angle(0, wire_list_goal[0]);
+  // angle-vector
+  // use only wire_list_goal
+  /*
   for(int i=0;i<n;i++){ // wire
-    float angle_goal = wire2angle(i, wire_list_goal[i]);
+    float angle_goal = wire2angle(i, wire_list_goal[i]); // wire_list_goalからangleを求める
     set_angle(i, 100.0, angle_goal);
     // wirelen.data[i] = angle2wire(i, angle[i]); // 現在の長さ
     // wirelen.data[i] = wire_list_goal[i]; // 目標の長さ
     wirelen.data[i] = wire_list_goal[i] - angle2wire(i, angle[i]); // 現在と目標の差分
   }
+  */
+  for(int i=0;i<n;i++){
+    wirelen.data[i] = angle2wire(i, angle[i]); // publish current wire length
+  }
+  wirelen.data[0] = seq_crt_idx;
+  // angle-vector-sequence
+  // use goal_sequence (idx, t, (wl)) and goal_sequence_length
+  // start when get_sequence_state == 2
+  // current next idx: seq_crt_idx
+  if(get_sequence_state == 2){
+    if(seq_crt_idx == 0){
+      // first : angle vector
+      float wl_err_max = 0.0;
+      for(int i=0;i<n;i++){
+        float angle_goal = wire2angle(i, goal_sequence[0][i+2]);
+        set_angle(i, 80.0, angle_goal);
+        wl_err_max = max(wl_err_max, abs(goal_sequence[0][i+2]-angle2wire(i, angle[i])));
+      }
+      if(wl_err_max < 1.0){
+        seq_crt_idx = 1;
+        for(int i=0;i<n;i++){
+          float seq_t = goal_sequence[1][1] - goal_sequence[0][1];
+          float seq_l = abs(goal_sequence[1][i+2] - angle2wire(i, angle[i]));
+          set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI), wire2angle(i, goal_sequence[1][i+2]));
+        }
+      }
+    }
+    if(seq_crt_idx > 0 && seq_crt_idx < goal_sequence_length-1){
+      // update goal or not
+      bool seq_update = true;
+      for(int i=0;i<n;i++){
+        float wl_distance_next = abs(goal_sequence[seq_crt_idx][i+2]-angle2wire(i, angle[i]));
+        float wl_distance_prev = abs(goal_sequence[seq_crt_idx-1][i+2]-angle2wire(i, angle[i]));
+        bool is_near_enough = (wl_distance_next < 1.0);
+        bool is_nearest = (wl_distance_next < wl_distance_prev);
+        seq_update &= (is_near_enough || is_nearest);
+      }
+      if(seq_update){
+        for(int i=0;i<n;i++){
+          float seq_t = goal_sequence[seq_crt_idx+1][1] - 
+            0.5*(goal_sequence[seq_crt_idx][1]-goal_sequence[seq_crt_idx-1][1]);
+          float seq_l = abs(goal_sequence[seq_crt_idx+1][i+2] - angle2wire(i, angle[i]));
+          set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI) , wire2angle(i, goal_sequence[seq_crt_idx+1][i+2]));
+        }
+        seq_crt_idx++;
+      }
+    }
+    if(seq_crt_idx == goal_sequence_length-1){
+      get_sequence_state = 0; // 終了
+    }
+  }
+
+  rotate_angle(); // call in every loop
   p.publish(&wirelen);
   nh.spinOnce();
   delay(100);  
@@ -187,36 +281,56 @@ int vel2pulse(int ch, float vel){
 // use in loop
 // thre: end threshold
 // cthre: control start threshold
-int set_angle(int ch, float vel, float theta, float cthre, float thre){
+void set_angle(int ch, float vel, float theta, float cthre, float thre){
+  // default
+  // cthre = 30.0;
+  // thre = 5.0;
+  Rdata[ch].vel = vel;
+  Rdata[ch].theta = theta;
+  Rdata[ch].cthre = cthre;
+  Rdata[ch].thre = thre;
+}
 
-  cthre = 30.0;
-  thre = 5.0;
-   float dist = theta - angle[ch];
-   if(abs(dist) < thre){
-    set_angle_count[ch]++;
-    servo_write(ch, 0);
-    return set_angle_count[ch];
-   }
-   if(abs(dist) > cthre){
-     if(dist < 0)vel = -vel;
-     servo_write(ch, vel2pulse(ch, vel));
-   }else{
+void rotate_angle(){
+  for(int ch=0;ch<n;ch++){
+
+    float vel = Rdata[ch].vel;
+    float theta = Rdata[ch].theta;
+    float cthre = Rdata[ch].cthre;
+    float thre = Rdata[ch].thre;
+    
+    // 安全
+    if(vel > 150) vel = 150;
+    if(vel < 30 && vel > 10)vel = 30;
+    if(vel < 0)vel *= -1.0;
+
+  
+    float dist = theta - angle[ch];
+    if(abs(dist) < thre){
+      set_angle_count[ch]++;
+      servo_write(ch, 0);
+      continue;
+    }
+    if(abs(dist) > cthre){
+      if(dist < 0)vel = -vel;
+      servo_write(ch, vel2pulse(ch, vel));
+    }else{
     // dist<=cthreの場合
     /* // シンプル
     vel = 50 *(dist / cthre);
     servo_write(ch, vel2pulse(ch, vel));
     */ 
-    // 線形
-    float vel_max_tmp = 50.0;
-    if(dist > 0){
-      vel = vel_limit_max[ch] + (vel_max_tmp - vel_limit_max[ch]) * dist / cthre;
-    }else{
-      vel = vel_limit_min[ch] + (vel_max_tmp + vel_limit_min[ch]) * dist / cthre;
+      // 線形
+      float vel_max_tmp = 30.0;
+      if(dist > 0){
+        vel = vel_limit_max[ch] + (vel_max_tmp - vel_limit_max[ch]) * dist / cthre;
+      }else{
+        vel = vel_limit_min[ch] + (vel_max_tmp + vel_limit_min[ch]) * dist / cthre;
+      }
+      servo_write(ch, vel2pulse(ch, vel));
     }
-    servo_write(ch, vel2pulse(ch, vel));
-   }
-   set_angle_count[ch] = 0;
-   return set_angle_count[ch];
+    set_angle_count[ch] = 0;
+  }
 }
 
 // set wire using ros

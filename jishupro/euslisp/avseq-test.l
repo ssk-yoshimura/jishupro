@@ -1,0 +1,23 @@
+(load "mbot-ri.l")
+
+(defun seqtest ()
+  (send *mbot* :init-pose)
+  (setq avs-test ())
+  (dotimes (i 5)
+    (setq rep-angle (send *mbot* :rarm-elbow-p :joint-angle))
+    (send *mbot* :rarm-elbow-p :joint-angle (+ rep-angle 10.0))
+    (send *mbot* :larm-elbow-p :joint-angle (+ rep-angle 10.0))
+    (push (send *mbot* :angle-vector) avs-test)
+    )
+  (setq avs-test (reverse avs-test))
+  avs-test)
+
+(defun wl-test ()
+  (setq wltt (avs2wls (seqtest) 2.0))
+  (mbot2ri-seq wltt)
+  )
+  
+(defun wl-test-r ()
+  (setq wltt (avs2wls (reverse (seqtest)) 2.0))
+  (mbot2ri-seq wltt)
+  )
