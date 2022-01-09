@@ -7,7 +7,7 @@
   (dotimes (i 3)
     (setq rep-angle (send *mbot* :rarm-elbow-p :joint-angle))
     (send *mbot* :rarm-elbow-p :joint-angle (+ rep-angle 15.0))
-    (send *mbot* :larm-elbow-p :joint-angle (+ rep-angle 10.0))
+    ;; (send *mbot* :larm-elbow-p :joint-angle (+ rep-angle 10.0))
     (push (send *mbot* :angle-vector) avs-test)
     )
   (setq avs-test (reverse avs-test))
