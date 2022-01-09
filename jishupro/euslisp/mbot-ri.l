@@ -65,3 +65,6 @@
     (ros::sleep)
     )
   )
+
+(defun mbot2ri-avs (avs time_all goal_offset)
+  (mbot2ri-seq (avs2wls avs time_all goal_offset)))

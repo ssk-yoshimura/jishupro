@@ -81,7 +81,10 @@ const float angle_init_pose[10] = {
   //85.78, 209.71, 289.69, 213.75, 227.81, 234.58, 280.72, 0.00, 61.26, 148.27
   //86.04, 199.86, 289.60, 212.34, 227.37, 234.05, 280.37, 0.00, 60.91, 148.27
   //51.24, 136.41, 336.62, 269.21, 244.60, 234.76, 215.51, 0.00, 31.03, 148.18
-  65.21, 175.69, 306.04, 231.50, 221.92, 234.58, 217.35, 0.00, 30.15, 148.18
+  //65.21, 175.69, 306.04, 231.50, 221.92, 234.58, 217.35, 0.00, 30.15, 148.18
+  //62.75, 171.12, 306.12, 233.35, 222.71, 234.49, 213.49, 0.00, 30.41, 148.18
+  //101.34, 187.47, 331.96, 247.24, 240.38, 234.23, 213.93, 0.00, 32.34, 148.45
+  103.97, 188.35, 330.38, 247.50, 329.33, 234.05, 214.72, 0.00, 32.34, 148.27
 };
 
 // サーボ回転角の係数
@@ -209,9 +212,11 @@ void loop() {
   }
   */
   for(int i=0;i<n;i++){
-    wirelen.data[i] = angle2wire(i, angle[i]); // publish current wire length
+    //wirelen.data[i] = angle2wire(i, angle[i]); // publish current wire length
   }
-  wirelen.data[0] = seq_crt_idx;
+  // debug
+  // wirelen.data[0] = seq_crt_idx;
+  // wirelen.data[1] = (float)goal_sequence_length;
   // angle-vector-sequence
   // use goal_sequence (idx, t, (wl)) and goal_sequence_length
   // start when get_sequence_state == 2
@@ -243,6 +248,7 @@ void loop() {
         bool is_near_enough = (wl_distance_next < 1.0);
         bool is_nearest = (wl_distance_next < wl_distance_prev);
         seq_update &= (is_near_enough || is_nearest);
+        // if(i >= 0) wirelen.data[i] = wl_distance_next; //debug
       }
       if(seq_update){
         for(int i=0;i<n;i++){
@@ -259,7 +265,9 @@ void loop() {
       get_sequence_state = 0; // 終了
     }
   }
-
+  for(int i=0;i<n;i++){
+    wirelen.data[i] = Rdata[i].vel;
+  }
   rotate_angle(); // call in every loop
   p.publish(&wirelen);
   nh.spinOnce();
