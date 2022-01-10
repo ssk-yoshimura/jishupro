@@ -129,7 +129,7 @@ void setup() {
   }
   */
   // (ch, vel, theta, cthre, thre)
-  set_angle(1, 200, 270);
+  set_angle(1, 200, 250);
  
 }
 
@@ -157,7 +157,7 @@ void loop() {
   int cht = 1;
   Serial.println(String(Rdata[cht].theta) + " " + String(angle[cht]) + " " + String(Rdata[cht].rvel) + " " + String(Rdata[0].dangle));
 
-  delay(100);  
+  delay(30);  
 }
 
 void calc_min_max(int ch){
@@ -303,8 +303,8 @@ void rotate_angle(){
     }
     */
     // linear, min, not use cthre
-    vel = min(vel, float(25.0 + 175.0 / 45.0 * (abs(dist) - 5.0)));
-    vel = min(vel, float(100.0 + 0.4 * 175.0 / 45.0 * (abs(dist) - 24.0)));
+    vel = min(vel, float(25.0 + 175.0 / 45.0 * (abs(dist) - 5.0))); 
+    // vel = min(vel, float(100.0 + 0.4 * 175.0 / 45.0 * (abs(dist) - 24.0))); // velが大きいところでは早めにストップする
     if(dist < 0) vel *= -1.0;
     servo_write(ch, vel2pulse(ch, vel));
     Rdata[ch].rvel = vel;

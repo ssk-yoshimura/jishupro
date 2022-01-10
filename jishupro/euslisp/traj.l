@@ -89,7 +89,7 @@
     ;;(mbot2ri-avs walk0 2.0 0)
     ;; (unix:sleep 10)
     (setq walka walkall)
-    (mbot2ri-avs walkall 5.0 0)
+    (mbot2ri-avs walkall 1.0 0)
     )
   )
 
