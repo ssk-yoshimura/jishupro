@@ -28,14 +28,11 @@ bool init_done = false;
 const int maxV = 4096;
 
 // deg/s
-float vel_limit_max[10] = {16.0,12.0,17.0,18.0,17.5,16.0,16.0,16.0,16.0,16.0};
-float vel_limit_min[10] = {-20,-20,-16,-15,-20,-20,-20,-20,-20,-20};
+float vel_limit_max[10] = {16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0,16.0};
+float vel_limit_min[10] = {-20.-20,-20,-20,-20,-20,-20,-20,-20,-20,-20};
 // pulse (-100 to 100)
-int pulse_limit_max[10] = {17,16,18,16,16,17,17,17,17,17}; 
-int pulse_limit_min[10] = {-7,-6,-8,-8,-7,-8,-8,-8,-8,-8};
-// grad : vel / pulse
-float k_p[10] = {3.9, 3.7, 3.7, 3.8, 3.9, 3.7, 3.7, 3.7, 3.7, 3.7};
-float k_m[10] = {3.7, 3.9, 3.3, 3.6, 3.7, 3.7, 3.7, 3.7, 3.7, 3.7};
+int pulse_limit_max[10] = {17,17,17,17,17,17,17,17,17,17}; 
+int pulse_limit_min[10] = {-8,-8,-8,-8,-8,-8,-8,-8,-8,-8};
 
 int set_angle_count[10];
 void set_angle(int ch, float vel, float theta, float cthre=10.0, float thre=5.0);
@@ -83,12 +80,7 @@ const float wire_init_pose[10] = {
 // init-poseのときのangle
 // wire_initializeで求める
 const float angle_init_pose[10] = {
-  //57.74, 289.60, 19.69, 248.91, 196.08, 236.95, 234.84, 27.16, 124.98, 223.33
-  //270.88, 249.17, 307.18, 340.40, 49.22, 163.74, 141.15, 63.54, 92.37, 184.39
-  //107.84, 39.55, 359.91, 29.44, 165.06, 162.69, 300.50, 62.93, 70.40, 128.94
-  //56.16, 343.21, 13.18, 109.86, 175.69, 163.56, 301.29, 62.84, 70.40, 129.02
-  //0.00, 338.47, 17.14, 106.00, 165.50, 258.75, 292.68, 12.92, 64.16, 102.57
-  359.91, 302.34, 26.89, 119.97, 170.07, 265.61, 271.49, 17.75, 44.12, 95.71
+  57.74, 289.60, 19.69, 248.91, 196.08, 236.95, 234.84, 27.16, 124.98, 223.33
 };
 
 // サーボ回転角の係数
@@ -123,9 +115,6 @@ int seq_test = 0;
 int seq_crt_idx = 0;
 int goal_offset = 0;
 
-float sequence_mode = 0.0;
-float thre_dist = 5.0; //deg
-
 // angle-vector-sequence用
 void messageCbsequence(const std_msgs::Float32MultiArray& msg){
   if(msg.data[0] == 0.0){ // 受信開始
@@ -142,9 +131,6 @@ void messageCbsequence(const std_msgs::Float32MultiArray& msg){
     if(msg.data[1] == -99){ //終了 & move start
       goal_sequence_length = msg.data[0];
       goal_offset = msg.data[2];
-      sequence_mode = msg.data[3];
-      thre_dist = msg.data[4];
-      
       get_sequence_state = 2;
       seq_crt_idx = 0;
     }
@@ -170,8 +156,7 @@ void setup() {
  pinMode(init_pin, INPUT_PULLUP);
  for(int i=0;i<n;i++){
   wire_list_goal[i] = wire_init_pose[i];
-  set_angle(i, 50, wire2angle(i, wire_init_pose[i])); // set only, not rotate
-  servo_write(i, 0); // stop servo
+  set_angle(i, 50, wire2angle(i, wire_init_pose[i]));
  }
  nh.initNode();
  wirelen.data = (float*)malloc(sizeof(float) * 10);
@@ -182,6 +167,9 @@ void setup() {
  nh.advertise(p);
  nh.subscribe(s);
  nh.subscribe(seq);
+ for(int i=0;i<n;i++){
+    servo_write(i, 0);
+ }
 
  while(!init_done){
     //init_enc();
@@ -253,36 +241,18 @@ void loop() {
       for(int i=0;i<n;i++){
         float wl_distance_next = abs(goal_sequence[seq_crt_idx][i+2]-angle2wire(i, angle[i]));
         float wl_distance_prev = abs(goal_sequence[seq_crt_idx-1][i+2]-angle2wire(i, angle[i]));
-        
-        // goal update algorithm
-        // sequence_mode 0: use is_near_enough and is_nearest
-        // sequence_mode 1: use only is_near_enough, use thre_dist[deg]
-        // goal_offset 0 is recommended
-        if((int)sequence_mode == 0){
-          bool is_near_enough = (wl_distance_next < 1.0);
-          bool is_nearest = (wl_distance_next < wl_distance_prev);
-          seq_update &= (is_near_enough || is_nearest);
-        }else if((int)sequence_mode == 1){
-          bool is_near_enough = (wl_distance_next < thre_dist);
-          seq_update &= is_near_enough;
-        }
+        bool is_near_enough = (wl_distance_next < 1.0);
+        bool is_nearest = (wl_distance_next < wl_distance_prev);
+        seq_update &= (is_near_enough || is_nearest);
         // if(i >= 0) wirelen.data[i] = wl_distance_next; //debug
       }
       if(seq_update){
         for(int i=0;i<n;i++){
-          // using current angle
-          /*
           int goal_idx_next = min(seq_crt_idx+1+goal_offset, goal_sequence_length-1);
           float seq_t = goal_sequence[goal_idx_next][1] - 
             0.5*(goal_sequence[seq_crt_idx][1]-goal_sequence[seq_crt_idx-1][1]);
           float seq_l = abs(goal_sequence[goal_idx_next][i+2] - angle2wire(i, angle[i]));
           set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI) , wire2angle(i, goal_sequence[seq_crt_idx+1][i+2]));
-          */
-          // not use current angle when decide vel, use only goal value
-          int goal_idx_next = min(seq_crt_idx+1+goal_offset, goal_sequence_length-1);
-          float seq_t = goal_sequence[goal_idx_next][1] - goal_sequence[goal_idx_next-1][1];
-          float seq_l = abs(goal_sequence[goal_idx_next][i+2] - goal_sequence[goal_idx_next-1][i+2]);
-          set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI), wire2angle(i, goal_sequence[goal_idx_next][i+2]));
         }
         seq_crt_idx++;
       }
@@ -296,22 +266,20 @@ void loop() {
     wirelen.data[i] = Rdata[i].rvel;
     wirelen.data[i+5] = Rdata[i].dangle;
   }
-  wirelen.data[0] = seq_crt_idx;
   p.publish(&wirelen);
   nh.spinOnce();
-  delay(30);  
+  delay(100);  
 }
-
 
 // vel[deg/s] to pulse in (-100,100)
 int vel2pulse(int ch, float vel){
   int pulse = 0;
   if(vel >= vel_limit_max[ch]){
     pulse = pulse_limit_max[ch];
-    pulse += (int)((vel - vel_limit_max[ch]) / k_p[ch]);
+    pulse += (int)((vel - vel_limit_max[ch]) / 3.7);
   }else if(vel <= vel_limit_min[ch]){
     pulse = pulse_limit_min[ch];
-    pulse += (int)((vel - vel_limit_min[ch]) / k_m[ch]);
+    pulse += (int)((vel - vel_limit_min[ch]) / 3.7);
   }
   return pulse;
 }
@@ -339,9 +307,9 @@ void rotate_angle(){
     float thre = Rdata[ch].thre;
     
     // 安全
-    if(vel < 0)vel *= -1.0;
     if(vel > 200) vel = 200;
-    if(vel < 25) vel = 25;
+    if(vel < 20 && vel > 10)vel = 20;
+    if(vel < 0)vel *= -1.0;
 
   
     float dist = theta - angle[ch];
@@ -352,14 +320,38 @@ void rotate_angle(){
       Rdata[ch].rvel = 0.0;
       continue;
     }
-    // linear, min, not use cthre
-    vel = min(vel, float(25.0 + 175.0 / 45.0 * (abs(dist) - 5.0))); 
-    // vel = min(vel, float(100.0 + 0.4 * 175.0 / 45.0 * (abs(dist) - 24.0))); // velが大きいところでは早めにストップする
-    if(dist < 0) vel *= -1.0;
+    if(abs(dist) > cthre){
+      if(dist < 0)vel = -vel;
+      servo_write(ch, vel2pulse(ch, vel));
+    }else{
+    // dist<=cthreの場合
+    /* // シンプル
+    vel = 50 *(dist / cthre);
     servo_write(ch, vel2pulse(ch, vel));
-   
+    */ 
+      // 線形
+      float vel_max_tmp = 30.0;
+      if(dist > 0){
+        vel = vel_limit_max[ch] + (vel_max_tmp - vel_limit_max[ch]) * dist / cthre;
+      }else{
+        vel = vel_limit_min[ch] + (vel_max_tmp + vel_limit_min[ch]) * dist / cthre;
+      }
+      servo_write(ch, vel2pulse(ch, vel));
+    }
     Rdata[ch].rvel = vel;
     set_angle_count[ch] = 0;
+  }
+}
+
+// set wire using ros
+void set_wire(){
+  // wire_list_goal[] : goal length, from eus
+  // wire_init_pose[] : wire length when init-pose
+  // angle_init_pose[] : servo angle when init-pose
+  // pull_direction[] : pull direction
+  for(int i=0;i<n;i++){
+    float angle_goal = wire2angle(i, wire_list_goal[i]);
+    set_angle(i, 50.0, angle_goal,0.0,0.0);
   }
 }
 

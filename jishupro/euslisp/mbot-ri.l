@@ -7,6 +7,8 @@
   (send *mbot* :init-pose)
   )
 
+(objects (list *mbot*))
+
 ;; (send *mbot* :wire-init)
 ;; initialize wire
 ;; (send *mbot* :init-pose)
@@ -21,7 +23,9 @@
 
 (ros::roseus "eus")
 (ros::advertise "wireus" std_msgs::float32multiarray 1)
+(ros::advertise "wire_sequence" std_msgs::float32multiarray 1)
 (ros::roseus-add-msgs "std_msgs")
+(ros::rate 10)
 
 (defun mbot2ri ()
   (ros::rate 10)
@@ -34,4 +38,40 @@
     (send msg :data wire-list-arduino)
     (ros::publish "wireus" msg)
     (ros::sleep))
+  )
+
+(defun avs2wls (avs time_all goal_offset sequence_mode thre_dist)
+  (setq wls-tmp ())
+  (dotimes (i (length avs))
+    (send *mbot* :angle-vector (elt avs i))
+    (send *mbot* :wire-calc)
+    (wire-list-to-arduino)
+    (setq wltime-tmp
+	  (if (atom time_all) (/ (* time_all (float i)) (- (float (length avs)) 1.0))
+	    (elt time_all i)))
+    (setq wl-tmp (list wltime-tmp (float i)))
+    (dotimes (j 10)
+      (push (elt wire-list-arduino j) wl-tmp))
+    (setq wl-tmp (reverse wl-tmp))
+    (push wl-tmp wls-tmp)
+    )
+  (push (list (length avs) -99.0 goal_offset sequence_mode thre_dist) wls-tmp)
+  (setq wls-tmp (reverse wls-tmp))
+  wls-tmp)
+
+(defun mbot2ri-seq (wl-seq)
+  (ros::rate 10)
+  (dotimes (i (length wl-seq))
+    (setq msg (instance std_msgs::float32multiarray :init))
+    (send msg :data (elt wl-seq i))
+    (ros::publish "wire_sequence" msg)
+    (ros::sleep)
+    )
+  )
+
+(defun mbot2ri-avs (avs time_all sequence_mode &key thre_dist goal_offset)
+  (let* ((goff (if goal_offset goal_offset 0))
+	 (thred (if thre_dist thre_dist 0.0)))
+    (mbot2ri-seq (avs2wls avs time_all goff sequence_mode thred))
+    )
   )
