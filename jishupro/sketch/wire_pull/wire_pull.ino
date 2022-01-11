@@ -19,25 +19,25 @@ PCA9685 pwm2 = PCA9685(0x41);
 const int n=10; // サーボのこすう
 
 const int init_pin = 2; // サーボ初期化スイッチ入力
-int servo_zero[10]; // サーボの初期角度
-int servo_n[10]; // サーボのかいてんすう、最初0をかていする
-int enc[10]; // エンコーダの値
-int enc_raw[10]; // エンコーダの生の値
-float angle[10]; // 角度 deg
+int servo_zero[12]; // サーボの初期角度
+int servo_n[12]; // サーボのかいてんすう、最初0をかていする
+int enc[12]; // エンコーダの値
+int enc_raw[12]; // エンコーダの生の値
+float angle[12]; // 角度 deg
 bool init_done = false;
 const int maxV = 4096;
 
 // deg/s
-float vel_limit_max[10] = {16.0,12.0,17.0,18.0,17.5,16.0,16.0,16.0,16.0,16.0};
-float vel_limit_min[10] = {-20,-20,-16,-15,-20,-20,-20,-20,-20,-20};
+float vel_limit_max[12] = {16.0,12.0,17.0,18.0,17.5,16.0,16.0,16.0,16.0,16.0, 16.0, 16.0};
+float vel_limit_min[12] = {-20,-20,-16,-15,-20,-20,-20,-20,-20,-20, -20, -20};
 // pulse (-100 to 100)
-int pulse_limit_max[10] = {17,16,18,16,16,17,17,17,17,17}; 
-int pulse_limit_min[10] = {-7,-6,-8,-8,-7,-8,-8,-8,-8,-8};
+int pulse_limit_max[12] = {17,16,18,16,16,17,17,17,17,17,17,17}; 
+int pulse_limit_min[12] = {-7,-6,-8,-8,-7,-8,-8,-8,-8,-8,-8,-8};
 // grad : vel / pulse
-float k_p[10] = {3.9, 3.7, 3.7, 3.8, 3.9, 3.7, 3.7, 3.7, 3.7, 3.7};
-float k_m[10] = {3.7, 3.9, 3.3, 3.6, 3.7, 3.7, 3.7, 3.7, 3.7, 3.7};
+float k_p[12] = {3.9, 3.7, 3.7, 3.8, 3.9, 3.7, 3.7, 3.7, 3.7, 3.7, 3.7, 3.7};
+float k_m[12] = {3.7, 3.9, 3.3, 3.6, 3.7, 3.7, 3.7, 3.7, 3.7, 3.7, 3.7, 3.7};
 
-int set_angle_count[10];
+int set_angle_count[12];
 void set_angle(int ch, float vel, float theta, float cthre=10.0, float thre=5.0);
 void rotate_angle();
 struct rotate_data{
@@ -49,7 +49,7 @@ struct rotate_data{
   float rvel=0.0; //real vel
 };
 
-rotate_data Rdata[10];
+rotate_data Rdata[12];
 
 float wire2angle(int ch, float w);
 float angle2wire(int ch, float agl);
@@ -66,6 +66,10 @@ const int SIG_PIN = 36;
 
 //const int enc_pin[10] = {36, 39, 34, 35, 32, 14, 27, 26, 25, 33};
 const int enc_pin[10] = {36, 39, 34, 35, 32, 33, 25, 26, 27, 14};
+
+const int wheel_enc_pin[2] = {4, 0};
+
+const int wheel_motor_num[2] = {6 , 6}; ////////!!!!!!!! set this value!!!!!
 
 
 ros::NodeHandle nh;
@@ -99,6 +103,8 @@ const int pull_direction[10] = {
   -1,-1,1,1,1
 };
 
+const float forward_direction[2] = {1.0, -1.0};
+
 float wire_list[10];
 
 // servo check
@@ -115,7 +121,7 @@ void messageCb(const std_msgs::Float32MultiArray& msg){
   }
 }
 
-float goal_sequence[50][12]; // (idx, time, wl)
+float goal_sequence[50][14]; // (idx, time, wl, wangle)
 int goal_sequence_length = 0;
 int get_sequence_state = 0; //0:no 1:getting 2:moving
 int get_sequence_count = 0;
@@ -124,7 +130,9 @@ int seq_crt_idx = 0;
 int goal_offset = 0;
 
 float sequence_mode = 0.0;
-float thre_dist = 5.0; //deg
+float thre_dist = 5.0; //mm
+
+float wheel_initial_angle[2]; // use when calculate wheel rotation goal
 
 // angle-vector-sequence用
 void messageCbsequence(const std_msgs::Float32MultiArray& msg){
@@ -173,9 +181,12 @@ void setup() {
   set_angle(i, 50, wire2angle(i, wire_init_pose[i])); // set only, not rotate
   servo_write(i, 0); // stop servo
  }
+ for(int i=10;i<12;i++){
+  servo_write(i, 0);
+ }
  nh.initNode();
- wirelen.data = (float*)malloc(sizeof(float) * 10);
- wirelen.data_length = 10;
+ wirelen.data = (float*)malloc(sizeof(float) * 12);
+ wirelen.data_length = 12;
  for(int i=0;i<wirelen.data_length;i++){
   wirelen.data[i] = 123.0;
  }
@@ -232,6 +243,8 @@ void loop() {
   if(get_sequence_state == 2){
     if(seq_crt_idx == 0){
       // first : angle vector
+      // set pulley to first position
+      // wheel: not move and get initial position
       float wl_err_max = 0.0;
       for(int i=0;i<n;i++){
         float angle_goal = wire2angle(i, goal_sequence[0][i+2]);
@@ -246,11 +259,14 @@ void loop() {
           set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI), wire2angle(i, goal_sequence[1+goal_offset][i+2]));
         }
       }
+      for(int i=0;i<2;i++){
+        wheel_initial_angle[i] = angle[i+10]; // set wheel initial angle
+      }
     }
     if(seq_crt_idx > 0 && seq_crt_idx < goal_sequence_length-1){
       // update goal or not
       bool seq_update = true;
-      for(int i=0;i<n;i++){
+      for(int i=0;i<n;i++){ // pulley convergence check
         float wl_distance_next = abs(goal_sequence[seq_crt_idx][i+2]-angle2wire(i, angle[i]));
         float wl_distance_prev = abs(goal_sequence[seq_crt_idx-1][i+2]-angle2wire(i, angle[i]));
         
@@ -266,10 +282,15 @@ void loop() {
           bool is_near_enough = (wl_distance_next < thre_dist);
           seq_update &= is_near_enough;
         }
-        // if(i >= 0) wirelen.data[i] = wl_distance_next; //debug
+      }
+      for(int i=0;i<2;i++){ // wheel convergence check, use only is_near_enough algorithm
+        float wheel_goal = forward_direction[i] * goal_sequence[seq_crt_idx][10+i+2] + wheel_initial_angle[i];
+        float angle_distance = abs(wheel_goal - angle[10+i]);
+        float wheel_thre = thre_dist * 180.0 / (PI * r_pulley);
+        seq_update &= (angle_distance < wheel_thre);
       }
       if(seq_update){
-        for(int i=0;i<n;i++){
+        for(int i=0;i<n;i++){ // pulley goal update
           // using current angle
           /*
           int goal_idx_next = min(seq_crt_idx+1+goal_offset, goal_sequence_length-1);
@@ -283,6 +304,13 @@ void loop() {
           float seq_t = goal_sequence[goal_idx_next][1] - goal_sequence[goal_idx_next-1][1];
           float seq_l = abs(goal_sequence[goal_idx_next][i+2] - goal_sequence[goal_idx_next-1][i+2]);
           set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI), wire2angle(i, goal_sequence[goal_idx_next][i+2]));
+        }
+        for(int i=0;i<2;i++){ //wheel goal update
+          int goal_idx_next = min(seq_crt_idx+1+goal_offset, goal_sequence_length-1);
+          float seq_t = goal_sequence[goal_idx_next][1] - goal_sequence[goal_idx_next-1][1];
+          float seq_l = abs(goal_sequence[goal_idx_next][i+10+2] - goal_sequence[goal_idx_next-1][i+10+2]);
+          float wheel_goal = forward_direction[i] * goal_sequence[seq_crt_idx][10+i+2] + wheel_initial_angle[i];
+          set_angle(i+10, seq_l / (seq_t * r_pulley) * (180.0 / PI), wheel_goal);
         }
         seq_crt_idx++;
       }
@@ -331,7 +359,7 @@ void set_angle(int ch, float vel, float theta, float cthre, float thre){
 }
 
 void rotate_angle(){
-  for(int ch=0;ch<n;ch++){
+  for(int ch=0;ch<12;ch++){
 
     float vel = Rdata[ch].vel;
     float theta = Rdata[ch].theta;
@@ -381,8 +409,14 @@ void servo_write(int ch, int p){ //動かすサーボチャンネルと角度を
   p = map(p, -100, 100, SERVOMIN, SERVOMAX); //角度（0～180）をPWMのパルス幅（150～600）に変換
   if(ch < 5){
     pwm.setPWM(15-ch, 0, p);
-  }else{
+  }else if(ch<10){
     pwm2.setPWM(ch-5, 0, p);
+  }else{ // wheel
+    if(ch == 10){ // right wheel
+      pwm.setPWM(wheel_motor_num[0] , 0, p);
+    }else{ // left wheel
+      pwm2.setPWM(wheel_motor_num[1] , 0, p);
+    }
   }
   //delay(1);
 }
@@ -415,6 +449,7 @@ void init_enc_allrange() {
   int init_value = digitalRead(init_pin);
   bool wire_check_tmp = true;
   if(init_value == 0){ //init
+    // pulley initialize
     for(int i=0;i<n;i++){
       // servo_zero[i] = muxRead(i); 
       servo_zero[i] = analogRead(enc_pin[i]);
@@ -441,6 +476,14 @@ void init_enc_allrange() {
         wire_check_tmp = false;
       }
     }
+    // wheel initialize
+    for(int i=10;i<12;i++){
+      servo_zero[i] = analogRead(wheel_enc_pin[i-10]);
+      servo_n[i] = 0;
+      enc[i] = servo_zero[i];
+      enc_raw[i] = enc[i];
+      angle[i] = ((float)enc[i]) / (float)maxV * 360.0;
+    }
     // init成功
     init_done = true;
     wire_init_check = wire_check_tmp;
@@ -451,10 +494,16 @@ void init_enc_allrange() {
 // encはenc_raw, servo_n, enc, angleの4つの値で表される
 void read_enc() {
   // 何周目かの更新
-  for(int i=0;i<n;i++){
+  for(int i=0;i<12;i++){
     // int enc_r = analogRead(i);
     // int enc_r = muxRead(i);
-    int enc_r = analogRead(enc_pin[i]);
+    // int enc_r = analogRead(enc_pin[i]);
+    int enc_r;
+    if(i<10){ // pulley
+      enc_r = analogRead(enc_pin[i]);
+    }else{ // wheel
+      enc_r = analogRead(wheel_enc_pin[i-10]);
+    }
     if(enc_r < 0) enc_r = 0;
     if(enc_r > maxV) enc_r = maxV;
     int min_dist = 10000;
