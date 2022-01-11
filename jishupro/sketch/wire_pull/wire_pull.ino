@@ -84,7 +84,11 @@ const float wire_init_pose[10] = {
 // wire_initializeで求める
 const float angle_init_pose[10] = {
   //57.74, 289.60, 19.69, 248.91, 196.08, 236.95, 234.84, 27.16, 124.98, 223.33
-  270.88, 249.17, 307.18, 340.40, 49.22, 163.74, 141.15, 63.54, 92.37, 184.39
+  //270.88, 249.17, 307.18, 340.40, 49.22, 163.74, 141.15, 63.54, 92.37, 184.39
+  //107.84, 39.55, 359.91, 29.44, 165.06, 162.69, 300.50, 62.93, 70.40, 128.94
+  //56.16, 343.21, 13.18, 109.86, 175.69, 163.56, 301.29, 62.84, 70.40, 129.02
+  //0.00, 338.47, 17.14, 106.00, 165.50, 258.75, 292.68, 12.92, 64.16, 102.57
+  359.91, 302.34, 26.89, 119.97, 170.07, 265.61, 271.49, 17.75, 44.12, 95.71
 };
 
 // サーボ回転角の係数
@@ -119,6 +123,9 @@ int seq_test = 0;
 int seq_crt_idx = 0;
 int goal_offset = 0;
 
+float sequence_mode = 0.0;
+float thre_dist = 5.0; //deg
+
 // angle-vector-sequence用
 void messageCbsequence(const std_msgs::Float32MultiArray& msg){
   if(msg.data[0] == 0.0){ // 受信開始
@@ -135,6 +142,9 @@ void messageCbsequence(const std_msgs::Float32MultiArray& msg){
     if(msg.data[1] == -99){ //終了 & move start
       goal_sequence_length = msg.data[0];
       goal_offset = msg.data[2];
+      sequence_mode = msg.data[3];
+      thre_dist = msg.data[4];
+      
       get_sequence_state = 2;
       seq_crt_idx = 0;
     }
@@ -243,18 +253,36 @@ void loop() {
       for(int i=0;i<n;i++){
         float wl_distance_next = abs(goal_sequence[seq_crt_idx][i+2]-angle2wire(i, angle[i]));
         float wl_distance_prev = abs(goal_sequence[seq_crt_idx-1][i+2]-angle2wire(i, angle[i]));
-        bool is_near_enough = (wl_distance_next < 1.0);
-        bool is_nearest = (wl_distance_next < wl_distance_prev);
-        seq_update &= (is_near_enough || is_nearest);
+        
+        // goal update algorithm
+        // sequence_mode 0: use is_near_enough and is_nearest
+        // sequence_mode 1: use only is_near_enough, use thre_dist[deg]
+        // goal_offset 0 is recommended
+        if((int)sequence_mode == 0){
+          bool is_near_enough = (wl_distance_next < 1.0);
+          bool is_nearest = (wl_distance_next < wl_distance_prev);
+          seq_update &= (is_near_enough || is_nearest);
+        }else if((int)sequence_mode == 1){
+          bool is_near_enough = (wl_distance_next < thre_dist);
+          seq_update &= is_near_enough;
+        }
         // if(i >= 0) wirelen.data[i] = wl_distance_next; //debug
       }
       if(seq_update){
         for(int i=0;i<n;i++){
+          // using current angle
+          /*
           int goal_idx_next = min(seq_crt_idx+1+goal_offset, goal_sequence_length-1);
           float seq_t = goal_sequence[goal_idx_next][1] - 
             0.5*(goal_sequence[seq_crt_idx][1]-goal_sequence[seq_crt_idx-1][1]);
           float seq_l = abs(goal_sequence[goal_idx_next][i+2] - angle2wire(i, angle[i]));
           set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI) , wire2angle(i, goal_sequence[seq_crt_idx+1][i+2]));
+          */
+          // not use current angle when decide vel, use only goal value
+          int goal_idx_next = min(seq_crt_idx+1+goal_offset, goal_sequence_length-1);
+          float seq_t = goal_sequence[goal_idx_next][1] - goal_sequence[goal_idx_next-1][1];
+          float seq_l = abs(goal_sequence[goal_idx_next][i+2] - goal_sequence[goal_idx_next-1][i+2]);
+          set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI), wire2angle(i, goal_sequence[goal_idx_next][i+2]));
         }
         seq_crt_idx++;
       }

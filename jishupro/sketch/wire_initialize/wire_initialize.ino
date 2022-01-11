@@ -71,16 +71,14 @@ void loop() {
   read_enc();
   bool check_initialize = true;
   for(int i=0;i<n;i++){
-    Serial.print(String(angle[i]) + ", ");
+    Serial.print(String(angle[i]));
+    if(i < n-1)Serial.print(", ");
     if(angle[i] < 60 || angle[i] > 300){
       check_initialize = false;
     }
   }
-  if(check_initialize){
-    Serial.print("   test passed\n");
-  }else{
-    Serial.print("   test FAILED!!!!! you must rewrite program or reset\n");
-  }
+  Serial.println("      n=" + String(n));
+
   /*
   for(int i=0;i<n;i++){
     Serial.print(String(servo_zero[i]) + " ");
