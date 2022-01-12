@@ -45,6 +45,8 @@ const int SIG_PIN = 36;
 const int enc_pin[10] = {36, 39, 34, 35, 32, 33, 25, 26, 27, 14};
 // const int enc_pin[10] = {36, 39, 34, 35, 32, 14, 27, 26, 25, 33};
 
+const int wheel_motor_num[2] = {7 , 7};
+
 void setup() {
  pwm.begin();                   //初期設定 (アドレス0x40用)
  pwm.setPWMFreq(60);            //PWM周期を60Hzに設定 (アドレス0x40用)
@@ -56,7 +58,7 @@ void setup() {
  pinMode(s3, OUTPUT);
  */
  Serial.begin(9600);
- for(int i=0;i<n;i++){
+ for(int i=0;i<12;i++){
     servo_write(i, 0);
  }
 
@@ -164,6 +166,7 @@ int set_angle(int ch, float vel, float theta, float cthre, float thre){
    return set_angle_count[ch];
 }
 
+/* pulley only
 void servo_write(int ch, int p){ //動かすサーボチャンネルと角度を指定
   if(p > 100) p = 100;
   if(p < -100) p = -100;
@@ -172,6 +175,26 @@ void servo_write(int ch, int p){ //動かすサーボチャンネルと角度を
     pwm.setPWM(15-ch, 0, p);
   }else{
     pwm2.setPWM(ch-5, 0, p);
+  }
+  //delay(1);
+}
+*/
+
+// pulley and wheel
+void servo_write(int ch, int p){ //動かすサーボチャンネルと角度を指定
+  if(p > 100) p = 100;
+  if(p < -100) p = -100;
+  p = map(p, -100, 100, SERVOMIN, SERVOMAX); //角度（0～180）をPWMのパルス幅（150～600）に変換
+  if(ch < 5){
+    pwm.setPWM(15-ch, 0, p);
+  }else if(ch<10){
+    pwm2.setPWM(ch-5, 0, p);
+  }else{ // wheel
+    if(ch == 10){ // right wheel
+      pwm.setPWM(wheel_motor_num[0] , 0, p);
+    }else{ // left wheel
+      pwm2.setPWM(wheel_motor_num[1] , 0, p);
+    }
   }
   //delay(1);
 }

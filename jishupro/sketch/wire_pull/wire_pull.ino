@@ -69,7 +69,7 @@ const int enc_pin[10] = {36, 39, 34, 35, 32, 33, 25, 26, 27, 14};
 
 const int wheel_enc_pin[2] = {4, 0};
 
-const int wheel_motor_num[2] = {6 , 6}; ////////!!!!!!!! set this value!!!!!
+const int wheel_motor_num[2] = {7 , 7};
 
 
 ros::NodeHandle nh;
@@ -87,12 +87,11 @@ const float wire_init_pose[10] = {
 // init-poseのときのangle
 // wire_initializeで求める
 const float angle_init_pose[10] = {
-  //57.74, 289.60, 19.69, 248.91, 196.08, 236.95, 234.84, 27.16, 124.98, 223.33
-  //270.88, 249.17, 307.18, 340.40, 49.22, 163.74, 141.15, 63.54, 92.37, 184.39
-  //107.84, 39.55, 359.91, 29.44, 165.06, 162.69, 300.50, 62.93, 70.40, 128.94
   //56.16, 343.21, 13.18, 109.86, 175.69, 163.56, 301.29, 62.84, 70.40, 129.02
   //0.00, 338.47, 17.14, 106.00, 165.50, 258.75, 292.68, 12.92, 64.16, 102.57
-  359.91, 302.34, 26.89, 119.97, 170.07, 265.61, 271.49, 17.75, 44.12, 95.71
+  // 359.91, 302.34, 26.89, 119.97, 170.07, 265.61, 271.49, 17.75, 44.12, 95.71
+  // 16.26, 345.85, 15.64, 146.78, 180.44, 245.83, 68.91, 4.57, 359.91, 107.49
+  0.53, 359.91, 0.00, 184.13, 227.72, 201.09, 88.51, 25.14, 359.91, 49.57 
 };
 
 // サーボ回転角の係数
@@ -113,6 +112,9 @@ bool wire_init_check = false;
 // pulley radius
 const float r_pulley = 11.0;
 
+//wheel radius
+const float r_wheel = 26.0;
+
 // ここでワイヤー長さを得て、角度を制御する
 void messageCb(const std_msgs::Float32MultiArray& msg){
   for(int i=0;i<msg.data_length;i++){
@@ -121,7 +123,7 @@ void messageCb(const std_msgs::Float32MultiArray& msg){
   }
 }
 
-float goal_sequence[50][14]; // (idx, time, wl, wangle)
+float goal_sequence[30][15]; // (idx, time, wl, wangle)
 int goal_sequence_length = 0;
 int get_sequence_state = 0; //0:no 1:getting 2:moving
 int get_sequence_count = 0;
@@ -158,6 +160,10 @@ void messageCbsequence(const std_msgs::Float32MultiArray& msg){
     }
     for(int i=0;i<msg.data_length;i++){
       goal_sequence[get_sequence_count][i] = msg.data[i];
+      //debug
+      if(i >= 2){
+        //wirelen.data[i-2] = goal_sequence[get_sequence_count][i];
+      }
     }
     if(get_sequence_count != (int)goal_sequence[get_sequence_count][0]){ //値が飛んだとき
       get_sequence_state = 0;
@@ -181,7 +187,7 @@ void setup() {
   set_angle(i, 50, wire2angle(i, wire_init_pose[i])); // set only, not rotate
   servo_write(i, 0); // stop servo
  }
- for(int i=10;i<12;i++){
+ for(int i=10;i<12;i++){ // stop wheel
   servo_write(i, 0);
  }
  nh.initNode();
@@ -191,12 +197,15 @@ void setup() {
   wirelen.data[i] = 123.0;
  }
  nh.advertise(p);
- nh.subscribe(s);
+ // nh.subscribe(s);
  nh.subscribe(seq);
 
  while(!init_done){
     //init_enc();
     init_enc_allrange();
+ }
+ for(int i=10;i<12;i++){
+  set_angle(i, 50, angle[i]);
  }
 }
 
@@ -246,21 +255,30 @@ void loop() {
       // set pulley to first position
       // wheel: not move and get initial position
       float wl_err_max = 0.0;
-      for(int i=0;i<n;i++){
+      for(int i=0;i<n;i++){ //pulley
         float angle_goal = wire2angle(i, goal_sequence[0][i+2]);
         set_angle(i, 80.0, angle_goal);
         wl_err_max = max(wl_err_max, abs(goal_sequence[0][i+2]-angle2wire(i, angle[i])));
       }
+      for(int i=0;i<2;i++){ // wheel
+        wheel_initial_angle[i] = angle[i+10]; // set wheel initial angle
+        set_angle(i+10, 50.0, angle[i+10]);
+      }
       if(wl_err_max < 1.0){
         seq_crt_idx = 1;
+        // set first pulley goal
         for(int i=0;i<n;i++){
           float seq_t = goal_sequence[1+goal_offset][1] - goal_sequence[0][1];
           float seq_l = abs(goal_sequence[1+goal_offset][i+2] - angle2wire(i, angle[i]));
           set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI), wire2angle(i, goal_sequence[1+goal_offset][i+2]));
         }
-      }
-      for(int i=0;i<2;i++){
-        wheel_initial_angle[i] = angle[i+10]; // set wheel initial angle
+        // set first wheel goal
+        for(int i=0;i<2;i++){
+          float seq_t = goal_sequence[1+goal_offset][1] - goal_sequence[0][1];
+          float seq_theta = abs(goal_sequence[1+goal_offset][i+12]); // deg
+          float wheel_goal = forward_direction[i] * goal_sequence[1+goal_offset][i+12] + wheel_initial_angle[i];
+          set_angle(i+10, seq_theta / seq_t, wheel_goal);
+        }
       }
     }
     if(seq_crt_idx > 0 && seq_crt_idx < goal_sequence_length-1){
@@ -284,7 +302,7 @@ void loop() {
         }
       }
       for(int i=0;i<2;i++){ // wheel convergence check, use only is_near_enough algorithm
-        float wheel_goal = forward_direction[i] * goal_sequence[seq_crt_idx][10+i+2] + wheel_initial_angle[i];
+        float wheel_goal = forward_direction[i] * goal_sequence[seq_crt_idx][i+12] + wheel_initial_angle[i];
         float angle_distance = abs(wheel_goal - angle[10+i]);
         float wheel_thre = thre_dist * 180.0 / (PI * r_pulley);
         seq_update &= (angle_distance < wheel_thre);
@@ -306,11 +324,12 @@ void loop() {
           set_angle(i, seq_l / (seq_t * r_pulley) * (180.0 / PI), wire2angle(i, goal_sequence[goal_idx_next][i+2]));
         }
         for(int i=0;i<2;i++){ //wheel goal update
+          ///*
           int goal_idx_next = min(seq_crt_idx+1+goal_offset, goal_sequence_length-1);
           float seq_t = goal_sequence[goal_idx_next][1] - goal_sequence[goal_idx_next-1][1];
-          float seq_l = abs(goal_sequence[goal_idx_next][i+10+2] - goal_sequence[goal_idx_next-1][i+10+2]);
-          float wheel_goal = forward_direction[i] * goal_sequence[seq_crt_idx][10+i+2] + wheel_initial_angle[i];
-          set_angle(i+10, seq_l / (seq_t * r_pulley) * (180.0 / PI), wheel_goal);
+          float seq_theta = abs(goal_sequence[goal_idx_next][i+12] - goal_sequence[goal_idx_next-1][i+12]);
+          float wheel_goal = forward_direction[i] * goal_sequence[goal_idx_next][i+12] + wheel_initial_angle[i];
+          set_angle(i+10, seq_theta / seq_t, wheel_goal);
         }
         seq_crt_idx++;
       }
@@ -320,11 +339,17 @@ void loop() {
     }
   }
   rotate_angle(); // call in every loop
+  /*
   for(int i=0;i<5;i++){ // debug
     wirelen.data[i] = Rdata[i].rvel;
     wirelen.data[i+5] = Rdata[i].dangle;
   }
+  */
+  
   wirelen.data[0] = seq_crt_idx;
+  wirelen.data[10] = Rdata[10].rvel;
+  wirelen.data[11] = Rdata[11].rvel;
+  
   p.publish(&wirelen);
   nh.spinOnce();
   delay(30);  

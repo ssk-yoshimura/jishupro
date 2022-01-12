@@ -31,7 +31,11 @@
 	      (send *mbot* :larm :end-coords))
 	:rotation-axis (list nil nil)
 	))
-		    
+
+;; function for wheels
+;; flength: forward length, return angle[deg]
+(defun l2d (flength)
+  (rad2deg (/ flength 26.0)))
 
 (defun walk-test (&optional drawtime)
   (send *mbot* :init-pose)
@@ -76,9 +80,10 @@
 	 )
     (setq wk0 walk0)
     (setq wk1 walk1)
-    (mbot2ri-avs walk0 2.0 1 :thre_dist 10)
+    (mbot2ri-avs walk0 nil 2.0 1 :thre_dist 10)
     ;; (unix:sleep 10)
     ;;(mbot2ri-avs walk1 2.0 0)
+    walk0
     )
   )
 
@@ -89,7 +94,8 @@
 	 )
     ;;(mbot2ri-avs walk0 2.0 0)
     ;; (unix:sleep 10)
-    (mbot2ri-avs walk1 2.0 1 :thre_dist 10)
+    (mbot2ri-avs walk1 nil 2.0 1 :thre_dist 10)
+    walk1
     )
   )
 
@@ -102,7 +108,8 @@
     ;;(mbot2ri-avs walk0 2.0 0)
     ;; (unix:sleep 10)
     (setq walka walkall)
-    (mbot2ri-avs walkall 3.0 1 :thre_dist 10)
+    (mbot2ri-avs walkall nil 3.0 1 :thre_dist 10)
+    walkall
     )
   )
 
@@ -113,26 +120,32 @@
 	 (walkall (append walk0 walk1))
 	 (time_list (list 0.0 0.6 1.0 1.4 1.7))
 	 )
-    (mbot2ri-avs walkall time_list 1 :thre_dist 10)
+    (mbot2ri-avs walkall nil time_list 1 :thre_dist 10)
+    walkall
     ))
-  
+
+;; use walk-prepare instead of init2walk
 (defun init2walk ()
   (let* ((wks (walk-test 0))
 	 (winitav (elt (elt wks 0) 0))
 	 (avs (list (send *mbot* :init-pose) winitav))
 	 )
     ;; (format t "~A~%" avs)
-    (mbot2ri-avs avs 5.0 0)
+    (mbot2ri-avs avs nil 5.0 0)
+    avs
     ))
 
+;; use walk-prepare 1 instead of walk2init
 (defun walk2init ()
   (let* ((wks (walk-test 0))
 	 (winitav (elt (elt wks 0) 0))
 	 (avs (list winitav (send *mbot* :init-pose)))
 	 )
-    (mbot2ri-avs avs 5.0 0)))
+    (mbot2ri-avs avs nil 5.0 0)
+    avs
+    ))
 
-(defun walk-prepare (&optional rvs) ;; when rvs, return walk->init
+(defun walk-prepare (&optional rvs) ;; calc avs. when rvs, return walk->init
   (send *mbot* :init-pose)
   (send *mbot* :orient (deg2rad 10) :y :world)
   (let* ((posr0 (send *mbot* :rarm :end-coords :worldpos))
@@ -149,7 +162,7 @@
       (send *irtviewer* :draw-objects)
       (unix:usleep 100000)
       )
-    (mbot2ri-avs (if rvs avs (reverse avs)) 7.0 1 :thre_dist 10)
+    (mbot2ri-avs (if rvs avs (reverse avs)) nil 7.0 1 :thre_dist 10)
     (if rvs avs (reverse avs))
     )
   )
@@ -163,7 +176,7 @@
 	 (rarm-x (elt (send *mbot* :rarm :end-coords :worldpos) 0))
 	 (larm-x (elt (send *mbot* :larm :end-coords :worldpos) 0))
 	 (distA 80)
-	 (distC 120)
+	 (distC 100)
 	 (distZ 100)
 	 (rA (instance coordinates :init :pos (float-vector (+ rarm-x distA) rarm-y 0)))
 	 (rB (instance coordinates :init :pos (float-vector rarm-x rarm-y 0)))
@@ -173,19 +186,23 @@
 	 (lB (instance coordinates :init :pos (float-vector larm-x larm-y 0)))
 	 (lC (instance coordinates :init :pos (float-vector (- larm-x distC) larm-y 0)))
 	 (lD (instance coordinates :init :pos (float-vector larm-x larm-y distZ)))
-	 ;; (rtargets (list rA rB rC rD rA))
-	 ;; (ltargets (list lC lD lA lB lC))
-	 (rtargets (list rA rB rC rD rA rB rC rD rA))
-	 (ltargets (list lC lD lA lB lC lD lA lB lC))
+	 (rtargets (list rA rB rC rD rA))
+	 (ltargets (list lC lD lA lB lC))
+	 ;; (rtargets (list rA rB rC rD rA rB rC rD rA))
+	 ;; (ltargets (list lC lD lA lB lC lD lA lB lC))
 	 (avs ())
-	 (avtime (list 0.0 2.0 2.3 2.35 2.4)) ;; when use this, you should change the value
+	 (wheels (list (float-vector 0.0 0.0)))
+	 ;; (avtime (list 0.0 2.0 2.3 2.35 2.4)) ;; when use this, you should change the value
 	 )
     (dotimes (i (length rtargets))
       (push (mbot-ik (elt rtargets i) (elt ltargets i)) avs)
+      (if (> i 0)
+	  (push (v+ (car wheels) (float-vector (l2d 80) (l2d 80))) wheels))
       (send *irtviewer* :draw-objects)
       (unix:usleep 300000)
       )
-    (mbot2ri-avs (reverse avs) 10.0 1 :thre_dist 5)
+    (mbot2ri-avs (reverse avs) (reverse wheels) 10.0 1 :thre_dist 5)
+    ;; (mbot2ri-avs (reverse avs) nil 5.0 1 :thre_dist 5) ;; no wheels
     avs
     )
   )

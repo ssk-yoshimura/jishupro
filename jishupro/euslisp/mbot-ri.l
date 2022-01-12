@@ -40,7 +40,7 @@
     (ros::sleep))
   )
 
-(defun avs2wls (avs time_all goal_offset sequence_mode thre_dist)
+(defun avs2wls (avs wheels time_all goal_offset sequence_mode thre_dist)
   (setq wls-tmp ())
   (dotimes (i (length avs))
     (send *mbot* :angle-vector (elt avs i))
@@ -52,6 +52,10 @@
     (setq wl-tmp (list wltime-tmp (float i)))
     (dotimes (j 10)
       (push (elt wire-list-arduino j) wl-tmp))
+    (if wheels
+	(dotimes (j 2)
+	  (push (elt (elt wheels i) j) wl-tmp))
+      (dotimes (j 2) (push 0 wl-tmp)))
     (setq wl-tmp (reverse wl-tmp))
     (push wl-tmp wls-tmp)
     )
@@ -69,9 +73,9 @@
     )
   )
 
-(defun mbot2ri-avs (avs time_all sequence_mode &key thre_dist goal_offset)
+(defun mbot2ri-avs (avs wheels time_all sequence_mode &key thre_dist goal_offset)
   (let* ((goff (if goal_offset goal_offset 0))
 	 (thred (if thre_dist thre_dist 0.0)))
-    (mbot2ri-seq (avs2wls avs time_all goff sequence_mode thred))
+    (mbot2ri-seq (avs2wls avs wheels time_all goff sequence_mode thred))
     )
   )
