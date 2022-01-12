@@ -1,18 +1,3 @@
-# jishupro
-
-## eusモデルの作り方
-SolidWorksからstlを出力するときは、解像度を下げて、単位をmにする
-
-https://github.com/jsk-ros-pkg/jsk_model_tools
-
-例
-```bash
-roscd jishupro/models
-rosrun collada_urdf_jsk_patch urdf_to_collada sample_model.urdf sample_model.dae
-rosrun euscollada collada2eus sample_model.dae sample_model.l
-```
-https://github.com/ssk-yoshimura/jishupro/tree/master/jishupro/models にMakefileを書いたのでmakeすればできる
-
 ## esp32でrosを使う手順
 ### 無線
 
@@ -35,7 +20,7 @@ Fork_server is:  False
 waiting for socket connection
 ```
 
-ここでESP32の電源を入れ直す（重要）
+ここでESP32のENボタンを押すなどして、電源を入れ直す（重要）
 
 少し待つと繋がる
 ```
@@ -57,6 +42,21 @@ https://github.com/ssk-yoshimura/jishupro/blob/master/jishupro/sketch/esp32_arra
 としておくと、```rosrun rosserial_python serial_node.py```で繋がる
 
 ```Serial.begin```は書かない（重要）
+
+# jishupro
+
+## eusモデルの作り方
+SolidWorksからstlを出力するときは、解像度を下げて、単位をmにする
+
+https://github.com/jsk-ros-pkg/jsk_model_tools
+
+例
+```bash
+roscd jishupro/models
+rosrun collada_urdf_jsk_patch urdf_to_collada sample_model.urdf sample_model.dae
+rosrun euscollada collada2eus sample_model.dae sample_model.l
+```
+https://github.com/ssk-yoshimura/jishupro/tree/master/jishupro/models にMakefileを書いたのでmakeすればできる
 
 ## サーボとワイヤーの初期化手順
 ### 初期設定（一度だけ）
