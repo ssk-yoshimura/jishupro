@@ -16,18 +16,15 @@ from jsk_recognition_msgs.msg import PeoplePoseArray
 
 # human estimatorと画像の色情報から、書類が適切な位置にあるかを識別する
 
-jidx = {"ls":0, "rs":1, "le":2, "re":3, "lw":4, "rw":5}
-
 class image_converter:
 
     def __init__(self):
 
-        self.joint_names = ["left shoulder", "right shoulder", "left elbow", "right elbow", "left wrist", "right wrist"]
+        self.joint_names = ["left shoulder", "right shoulder", "left elbow", "right elbow", "right wrist", "left wrist"]
         self.joint_size = len(self.joint_names)
         self.joint_x = np.zeros(self.joint_size)
         self.joint_y = np.zeros(self.joint_size)
-        self.joint_exist = np.zeros(self.joint_size)
-        self.rw_state_estimator = 0
+        self.fileRect = [0]*4 # ファイルの隅
         
         self.image_pub = rospy.Publisher("image_topic_2",Image, queue_size=1)
 
@@ -45,30 +42,52 @@ class image_converter:
 
         (rows,cols,channels) = img.shape
 
-        # xが横、yが縦
+        # 緑色を閾値にして2値化
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        gray = np.zeros((rows, cols))
+        gray[(hsv[:,:,0] > 80) & (hsv[:,:,0] < 100) & (hsv[:,:,1] > 40)] = 255
 
-        # 肩と肘のx座標が近い
-        v0 = abs(self.joint_x[jidx["re"]] - self.joint_x[jidx["rs"]])
-        f0 = v0 < 50
-        # 肩と肘のy座標が十分離れている
-        v1 = self.joint_y[jidx["re"]] - self.joint_y[jidx["rs"]]
-        f1 =  v1 > 120
-        # 肘と手首のy座標が近い
-        v2 = abs(self.joint_y[jidx["re"]] - self.joint_y[jidx["rw"]])
-        f2 = v2 < 80
+        # 輪郭検出
+        gray2 = np.zeros((rows, cols))
+        gray = gray.astype(np.uint8)
+        gray, contours, hierarchy = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        # print(len(contours))
 
-        # 手首が映らないときの状態を推定する
-        if self.joint_exist[jidx["rw"]] == 1:
-            self.rw_state_estimator = min(3, self.rw_state_estimator+1)
-        else:
-            self.rw_state_estimator = max(-3, self.rw_state_estimator-1)
+        # 最大領域の輪郭を探す
+        maxareaidx = 0
+        maxarea = 0
+        for i, cnt in enumerate(contours):
+            area = cv2.contourArea(cnt)
+            if area > maxarea:
+               maxareaidx = i
+               maxarea = area
 
-        fw = self.rw_state_estimator > 0
+        go_flag = False
+               
+        # 最大領域の外接矩形
+        if len(contours) > 0:
+            gray2 = cv2.drawContours(gray2, [contours[maxareaidx]], 0, 100, 1)
+            self.fileRect = cv2.boundingRect(contours[maxareaidx])
+            x, y, w, h = self.fileRect
+            cv2.rectangle(gray2, (x,y), (x+w, y+h), 255, 3)
 
-        # print(str(f0) + " " + str(f1) + " " + str(f2) + " " + str(fw))
-        # print(str(v0) + " " + str(v1) + " " + str(v2))
-        go_flag = f0 & f1 & f2 & fw
+            # 発進してよいかの判別
+            """
+            f0 = max(self.joint_y[0], self.joint_y[1]) < y
+            f1 = y < min(self.joint_y[2], self.joint_y[3])
+            f2 = self.joint_x[3] < x
+            f3 = x+w < self.joint_x[2]
+            f4 = min(self.joint_y[2], self.joint_y[3]) < y+h
+            f5 = abs(self.joint_x[0]+self.joint_x[1]-x-x-w) < 50
+            go_flag = f0 & f1 & f2 & f3 & f4 & f5
+            # print (abs(self.joint_x[0]+self.joint_x[1]-x-x-w))
+            """
+            go_flag = False
 
+            goc = [255, 255, 255] if go_flag else [0, 0, 255]
+            cv2.rectangle(img, (x,y), (x+w, y+h), goc, 3)
+            
         if go_flag:
             print("go_flag is " + str(go_flag))
         else:
@@ -76,10 +95,11 @@ class image_converter:
             
         # 人間の関節描画
         for i in range(self.joint_size):
-            joint_color = (255 if self.joint_exist[i]==1 else 0)
-            cv2.circle(img, (int(self.joint_x[i]), int(self.joint_y[i])), 10, (255, 0, joint_color), thickness=3)
+            cv2.circle(gray2, (int(self.joint_x[i]), int(self.joint_y[i])), 10, 255, thickness=3)
+            cv2.circle(img, (int(self.joint_x[i]), int(self.joint_y[i])), 10, (255, 255, 255), thickness=3)
             
         cv2.imshow("img", img)
+        # cv2.imshow("gray2", gray2)
         cv2.waitKey(3)
 
         # cv2.imwrite('a.jpg', img)
@@ -98,9 +118,7 @@ class image_converter:
                 idx = data.poses[0].limb_names.index(v)
                 self.joint_x[i] = data.poses[0].poses[idx].position.x
                 self.joint_y[i] = data.poses[0].poses[idx].position.y
-                self.joint_exist[i] = 1
-            else:
-                self.joint_exist[i] = 0
+                # print(v + ' ' + str(self.joint_x[i]) + ' ' + str(self.joint_y[i]))
 
 def main(args):
     rospy.init_node('image_converter', anonymous=True)
