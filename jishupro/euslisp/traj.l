@@ -201,7 +201,7 @@
       (send *irtviewer* :draw-objects)
       (unix:usleep 300000)
       )
-    (mbot2ri-avs (reverse avs) (reverse wheels) 10.0 1 :thre_dist 5)
+    (mbot2ri-avs (reverse avs) (reverse wheels) 4.0 1 :thre_dist 5)
     ;; (mbot2ri-avs (reverse avs) nil 5.0 1 :thre_dist 5) ;; no wheels
     avs
     )

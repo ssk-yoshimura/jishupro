@@ -22,5 +22,5 @@
 (defun wl-test-r ()
   ;; (setq wltt (avs2wls (reverse (seqtest)) 1.5 0))
   ;; (mbot2ri-seq wltt)
-  (mbot2ri-avs (reverse (seqtest)) nil 1.5 0)
+  (mbot2ri-avs (reverse (seqtest)) nil 1.5 1 :thre_dist 10)
   )

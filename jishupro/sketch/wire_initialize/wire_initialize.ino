@@ -58,12 +58,14 @@ void setup() {
  pinMode(s3, OUTPUT);
  */
  Serial.begin(9600);
+ Serial.println("Serial Start");
  for(int i=0;i<12;i++){
     servo_write(i, 0);
  }
 
  while(!init_done){
     init_enc();
+    Serial.println("waiting initialization");
  }
 }
 

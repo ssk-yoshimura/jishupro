@@ -91,7 +91,8 @@ const float angle_init_pose[10] = {
   //0.00, 338.47, 17.14, 106.00, 165.50, 258.75, 292.68, 12.92, 64.16, 102.57
   // 359.91, 302.34, 26.89, 119.97, 170.07, 265.61, 271.49, 17.75, 44.12, 95.71
   // 16.26, 345.85, 15.64, 146.78, 180.44, 245.83, 68.91, 4.57, 359.91, 107.49
-  0.53, 359.91, 0.00, 184.13, 227.72, 201.09, 88.51, 25.14, 359.91, 49.57 
+  // 0.53, 359.91, 0.00, 184.13, 227.72, 201.09, 88.51, 25.14, 359.91, 49.57 
+  359.91, 268.33, 21.18, 157.41, 216.65, 243.19, 133.59, 8.26, 359.91, 76.11 
 };
 
 // サーボ回転角の係数
@@ -130,6 +131,7 @@ int get_sequence_count = 0;
 int seq_test = 0;
 int seq_crt_idx = 0;
 int goal_offset = 0;
+int goal_override = 0; // goal override counter
 
 float sequence_mode = 0.0;
 float thre_dist = 5.0; //mm
@@ -142,6 +144,7 @@ void messageCbsequence(const std_msgs::Float32MultiArray& msg){
     get_sequence_state = 1;
     get_sequence_count = 0;
     goal_sequence_length = 0;
+    goal_override = 0;
     for(int i=0;i<30;i++){
       goal_sequence[i][0] = 0.0;
       goal_sequence[i][1] = 0.0;
@@ -336,6 +339,8 @@ void loop() {
     }
     if(seq_crt_idx == goal_sequence_length-1){
       get_sequence_state = 0; // 終了
+      // seq_crt_idx : last goal idx
+      goal_override = 1; // goal_override count start
     }
   }
   rotate_angle(); // call in every loop
@@ -384,6 +389,25 @@ void set_angle(int ch, float vel, float theta, float cthre, float thre){
 }
 
 void rotate_angle(){
+  // goal_override
+  if(goal_override > 0){
+    bool goal_override_check = true;
+    for(int i=0;i<12;i++){
+      float dist = Rdata[i].theta - angle[i];
+      goal_override_check &= (abs(dist) < 10.0);
+    }
+    if(goal_override_check){
+      goal_override++;
+    }
+    if(goal_override > 50){ // goal override
+      for(int i=0;i<12;i++){
+        Rdata[i].theta = angle[i];
+      }
+      goal_override = 0;
+    }
+  }
+
+  // rotate angle
   for(int ch=0;ch<12;ch++){
 
     float vel = Rdata[ch].vel;
@@ -396,8 +420,8 @@ void rotate_angle(){
     if(vel > 200) vel = 200;
     if(vel < 25) vel = 25;
 
-  
     float dist = theta - angle[ch];
+
     Rdata[ch].dangle = dist;
     if(abs(dist) < thre){
       set_angle_count[ch]++;
