@@ -12,7 +12,11 @@ rosrun uvc_camera uvc_camera_node _device:=/dev/video1
 #### Edge TPU ####
 ```
 source /opt/ros/melodic/setup.bash
+```
+```
 source ~/coral_ws/devel/setup.bash
+```
+```
 roslaunch coral_usb edgetpu_human_pose_estimator.launch INPUT_IMAGE:=/image_raw
 ```
 
