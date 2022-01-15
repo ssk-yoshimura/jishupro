@@ -4,10 +4,10 @@
 #include <ros.h>
 #define ESP32
 #include <std_msgs/Float32MultiArray.h>
+//#include <std_msgs/Int32.h>
 
 PCA9685 pwm = PCA9685(0x40);    //PCA9685のアドレス指定（アドレスジャンパ未接続時）
 PCA9685 pwm2 = PCA9685(0x41);
-
 
 
 // パルスの割合
@@ -77,6 +77,10 @@ std_msgs::Float32MultiArray wirelen;
 ros::Publisher p("arduino", &wirelen);
 float wire_list_goal[10];
 
+// cvg
+//std_msgs::Int32 cvg;
+//ros::Publisher pc("cvg", &cvg);
+
 //init-poseのときのwire-list-arduino
 // eusで計算する(:wire-calc後にwire-list-to-arduinoする)
 const float wire_init_pose[10] = {
@@ -87,12 +91,11 @@ const float wire_init_pose[10] = {
 // init-poseのときのangle
 // wire_initializeで求める
 const float angle_init_pose[10] = {
-  //56.16, 343.21, 13.18, 109.86, 175.69, 163.56, 301.29, 62.84, 70.40, 129.02
-  //0.00, 338.47, 17.14, 106.00, 165.50, 258.75, 292.68, 12.92, 64.16, 102.57
-  // 359.91, 302.34, 26.89, 119.97, 170.07, 265.61, 271.49, 17.75, 44.12, 95.71
-  // 16.26, 345.85, 15.64, 146.78, 180.44, 245.83, 68.91, 4.57, 359.91, 107.49
-  // 0.53, 359.91, 0.00, 184.13, 227.72, 201.09, 88.51, 25.14, 359.91, 49.57 
-  359.91, 268.33, 21.18, 157.41, 216.65, 243.19, 133.59, 8.26, 359.91, 76.11 
+  // 359.91, 244.07, 28.04, 176.57, 202.59, 276.59, 129.55, 0.00, 317.72, 51.42
+  //1.93, 252.69, 23.91, 177.80, 205.58, 280.28, 127.53, 6.77, 326.25, 53.35
+  //18.19, 277.56, 5.62, 162.07, 178.33, 253.21, 107.14, 17.31, 357.80, 60.56 
+  //161.89, 359.91, 139.39, 311.40, 335.83, 359.91, 269.91, 179.12, 359.91, 229.22 
+  162.07, 359.91, 139.13, 310.87, 334.25, 359.91, 270.88, 206.98, 359.91, 229.13 
 };
 
 // サーボ回転角の係数
@@ -145,6 +148,7 @@ void messageCbsequence(const std_msgs::Float32MultiArray& msg){
     get_sequence_count = 0;
     goal_sequence_length = 0;
     goal_override = 0;
+    //cvg.data = 0;
     for(int i=0;i<30;i++){
       goal_sequence[i][0] = 0.0;
       goal_sequence[i][1] = 0.0;
@@ -196,6 +200,7 @@ void setup() {
  nh.initNode();
  wirelen.data = (float*)malloc(sizeof(float) * 12);
  wirelen.data_length = 12;
+ //cvg.data = 0;
  for(int i=0;i<wirelen.data_length;i++){
   wirelen.data[i] = 123.0;
  }
@@ -210,6 +215,7 @@ void setup() {
  for(int i=10;i<12;i++){
   set_angle(i, 50, angle[i]);
  }
+ wirelen.data[0] = 88.0;
 }
 
 // -100から100にできないか -> できた
@@ -404,6 +410,7 @@ void rotate_angle(){
         Rdata[i].theta = angle[i];
       }
       goal_override = 0;
+      //cvg.data = 1;
     }
   }
 
@@ -496,6 +503,7 @@ void init_enc() {
 
 void init_enc_allrange() {
   int init_value = digitalRead(init_pin);
+  // int init_value = 0; // force to initialize !!!!!
   bool wire_check_tmp = true;
   if(init_value == 0){ //init
     // pulley initialize
@@ -534,7 +542,8 @@ void init_enc_allrange() {
       angle[i] = ((float)enc[i]) / (float)maxV * 360.0;
     }
     // init成功
-    init_done = true;
+    init_done = true; // normal
+    //init_done = wire_check_tmp; // wire_check mode
     wire_init_check = wire_check_tmp;
   }
 }

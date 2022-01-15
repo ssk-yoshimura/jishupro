@@ -45,11 +45,16 @@ const int SIG_PIN = 36;
 const int enc_pin[10] = {36, 39, 34, 35, 32, 33, 25, 26, 27, 14};
 // const int enc_pin[10] = {36, 39, 34, 35, 32, 14, 27, 26, 25, 33};
 
+
+const int wheel_enc_pin[2] = {4, 0};
+
 const int wheel_motor_num[2] = {7 , 7};
 
 void setup() {
  pwm.begin();                   //初期設定 (アドレス0x40用)
  pwm.setPWMFreq(60);            //PWM周期を60Hzに設定 (アドレス0x40用)
+ pwm2.begin();                   //初期設定 (アドレス0x40用)
+ pwm2.setPWMFreq(60);            //PWM周期を60Hzに設定 (アドレス0x40用)
  pinMode(init_pin, INPUT_PULLUP);
  /*
  pinMode(s0, OUTPUT);
@@ -59,7 +64,7 @@ void setup() {
  */
  Serial.begin(9600);
  Serial.println("Serial Start");
- for(int i=0;i<12;i++){
+ for(int i=0;i<10;i++){
     servo_write(i, 0);
  }
 

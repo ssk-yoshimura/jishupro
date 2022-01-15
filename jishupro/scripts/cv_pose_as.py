@@ -13,26 +13,53 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from jsk_recognition_msgs.msg import PeoplePoseArray
+import actionlib
+from jsk_2021_10_semi.msg import *
 
-# human estimatorと画像の色情報から、書類が適切な位置にあるかを識別する
+# ActionServer
+# ActionClientからgoalが送られると、画像とpose estimatorのtopicを受け取り始める
+# resultを返すときに、画像とpose estimatorの受け取りをやめる
+# yoshimura-ac.lがActionClient
+
 
 class image_converter:
 
     def __init__(self):
 
-        self.joint_names = ["left shoulder", "right shoulder", "left elbow", "right elbow", "right wrist", "left wrist"]
-        self.joint_size = len(self.joint_names)
-        self.joint_x = np.zeros(self.joint_size)
-        self.joint_y = np.zeros(self.joint_size)
-        self.fileRect = [0]*4 # ファイルの隅
+        self.joint_names = ["left shoulder", "right shoulder", "left elbow", "right elbow"]
+        self.joint_x = [0]*4
+        self.joint_y = [0]*4
+        self.fileRect = [0]*4 # ファイルのx,y,w,h
+
+        self.goalVal = 0
+        self.filew = []
         
         self.image_pub = rospy.Publisher("image_topic_2",Image, queue_size=1)
 
         self.bridge = CvBridge()
-        # self.image_sub = rospy.Subscriber("/usb_cam/image_raw",Image,self.callback) # PC
-        self.image_sub = rospy.Subscriber("/image_raw",Image,self.callback) # usb camera
-        self.pose_sub = rospy.Subscriber("/edgetpu_human_pose_estimator/output/poses", PeoplePoseArray, self.callback_poses) # PV, usb
-
+        self.server = actionlib.SimpleActionServer('yoshimura', YoshimuraAction, self.execute, False)
+        self.server.start()
+        
+    # ActionServerの関数
+    def execute(self, goal):
+        print ("goal is" + str(goal.yoshimura_goal))
+        rate = rospy.Rate(10)
+        self.image_sub = rospy.Subscriber("/usb_cam/image_raw",Image,self.callback)
+        self.pose_sub = rospy.Subscriber("/edgetpu_human_pose_estimator/output/poses", PeoplePoseArray, self.callback_poses)
+        while self.goalVal < 50:
+            rate.sleep()
+            if rospy.is_shutdown():
+                break
+        self.image_sub.unregister()
+        self.pose_sub.unregister()
+        cv2.destroyAllWindows()
+        result = self.server.get_default_result()
+        result.yoshimura_result = int(np.mean(self.filew)) #ファイルの横幅をresultとする
+        print ("result is " + str(result.yoshimura_result))
+        self.goalVal = 0
+        self.filew = []
+        self.server.set_succeeded(result)
+        
     # 画像処理のコールバック関数
     def callback(self,data):
         try:
@@ -71,9 +98,9 @@ class image_converter:
             self.fileRect = cv2.boundingRect(contours[maxareaidx])
             x, y, w, h = self.fileRect
             cv2.rectangle(gray2, (x,y), (x+w, y+h), 255, 3)
+            
 
             # 発進してよいかの判別
-            """
             f0 = max(self.joint_y[0], self.joint_y[1]) < y
             f1 = y < min(self.joint_y[2], self.joint_y[3])
             f2 = self.joint_x[3] < x
@@ -82,24 +109,26 @@ class image_converter:
             f5 = abs(self.joint_x[0]+self.joint_x[1]-x-x-w) < 50
             go_flag = f0 & f1 & f2 & f3 & f4 & f5
             # print (abs(self.joint_x[0]+self.joint_x[1]-x-x-w))
-            """
-            go_flag = False
 
             goc = [255, 255, 255] if go_flag else [0, 0, 255]
             cv2.rectangle(img, (x,y), (x+w, y+h), goc, 3)
             
         if go_flag:
-            print("go_flag is " + str(go_flag))
+            print("go_flag is " + str(go_flag) + ' ' + str(self.goalVal))
+            self.goalVal += 1
+            self.filew.append(self.fileRect[2])
         else:
             print("no")
+            self.goalVal = 0
+            self.filew = []
             
         # 人間の関節描画
-        for i in range(self.joint_size):
+        for i in range(4):
             cv2.circle(gray2, (int(self.joint_x[i]), int(self.joint_y[i])), 10, 255, thickness=3)
             cv2.circle(img, (int(self.joint_x[i]), int(self.joint_y[i])), 10, (255, 255, 255), thickness=3)
             
         cv2.imshow("img", img)
-        cv2.imshow("gray", gray)
+        cv2.imshow("gray2", gray2)
         cv2.waitKey(3)
 
         # cv2.imwrite('a.jpg', img)
@@ -120,14 +149,8 @@ class image_converter:
                 self.joint_y[i] = data.poses[0].poses[idx].position.y
                 # print(v + ' ' + str(self.joint_x[i]) + ' ' + str(self.joint_y[i]))
 
-def main(args):
+if __name__ == '__main__':    
     rospy.init_node('image_converter', anonymous=True)
     ic = image_converter()
-    try:
-        rospy.spin()
-    except KeyboardInterrupt:
-        print("Shutting down")
+    rospy.spin()
     cv2.destroyAllWindows()
-
-if __name__ == '__main__':
-    main(sys.argv)

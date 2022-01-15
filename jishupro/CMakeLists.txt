@@ -8,19 +8,20 @@ project(jishupro)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
   geometry_msgs
   message_generation
   message_runtime
-  actionlib
-  actionlib_msgs
-  roscpp
-  rospy
   std_msgs
   sensor_msgs
   rosserial_arduino
   rosserial_client
   cv_bridge
   jsk_recognition_msgs
+  actionlib
+  actionlib_msgs
+
 )
 
 ## System dependencies are found with CMake's conventions
@@ -79,9 +80,9 @@ add_action_files(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  actionlib_msgs
   sensor_msgs
   jsk_recognition_msgs
+  actionlib_msgs
   # geometry_msgs#   std_msgs
   )
 

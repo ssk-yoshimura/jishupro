@@ -13,6 +13,8 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from jsk_recognition_msgs.msg import PeoplePoseArray
+import actionlib
+from jishupro.msg import *
 
 # human estimatorと画像の色情報から、書類が適切な位置にあるかを識別する
 
@@ -28,13 +30,48 @@ class image_converter:
         self.joint_y = np.zeros(self.joint_size)
         self.joint_exist = np.zeros(self.joint_size)
         self.rw_state_estimator = 0
+        self.lw_state_estimator = 0
+        self.goal = 0
+        self.rval = 0
+        self.lval = 0
+        self.nval = 0
+        self.goalVal = 0
         
         self.image_pub = rospy.Publisher("image_topic_2",Image, queue_size=1)
 
         self.bridge = CvBridge()
+
+        self.server = actionlib.SimpleActionServer('yoshimura', YoshimuraAction, self.execute, False)
+        self.server.start()
+        
+        
+    def execute(self, goal):
+        print("goal is " + str(goal.yoshimura_goal)) # 1:hand 2:nade
+        self.goal = goal.yoshimura_goal
+        rate = rospy.Rate(10)
         # self.image_sub = rospy.Subscriber("/usb_cam/image_raw",Image,self.callback) # PC
         self.image_sub = rospy.Subscriber("/image_raw",Image,self.callback) # usb camera
         self.pose_sub = rospy.Subscriber("/edgetpu_human_pose_estimator/output/poses", PeoplePoseArray, self.callback_poses) # PV, usb
+        while self.goalVal == 0:
+            rate.sleep()
+            if rospy.is_shutdown():
+                break
+        self.image_sub.unregister()
+        self.pose_sub.unregister()
+        cv2.destroyAllWindows()
+        result = self.server.get_default_result()
+        if self.rval >= 40 & self.goal == 1:
+            result.yoshimura_result = 1 # 1は右手
+        elif self.lval >= 40 & self.goal == 1:
+            result.yoshimura_result = 2 # 2は左手
+        else:
+            result.yoshimura_result = 3 # 3はなでる
+        print ("result is " + str(result.yoshimura_result))
+        self.rval = 0
+        self.lval = 0
+        self.nval = 0
+        self.goalVal = 0
+        self.server.set_succeeded(result)
 
     # 画像処理のコールバック関数
     def callback(self,data):
@@ -47,6 +84,7 @@ class image_converter:
 
         # xが横、yが縦
 
+        # 右手
         # 肩と肘のx座標が近い
         v0 = abs(self.joint_x[jidx["re"]] - self.joint_x[jidx["rs"]])
         f0 = v0 < 50
@@ -57,7 +95,7 @@ class image_converter:
         v2 = abs(self.joint_y[jidx["re"]] - self.joint_y[jidx["rw"]])
         f2 = v2 < 80
 
-        # 手首が映らないときの状態を推定する
+        # 右手首が映らないときの状態を推定する
         if self.joint_exist[jidx["rw"]] == 1:
             self.rw_state_estimator = min(3, self.rw_state_estimator+1)
         else:
@@ -67,26 +105,55 @@ class image_converter:
 
         # print(str(f0) + " " + str(f1) + " " + str(f2) + " " + str(fw))
         # print(str(v0) + " " + str(v1) + " " + str(v2))
-        go_flag = f0 & f1 & f2 & fw
+        r_flag = f0 & f1 & f2 & fw
 
-        """
-        if go_flag:
-            print("go_flag is " + str(go_flag))
+        # 左手
+        # 肩と肘のx座標が近い
+        w0 = abs(self.joint_x[jidx["le"]] - self.joint_x[jidx["ls"]])
+        g0 = w0 < 50
+        # 肩と肘のy座標が十分離れている
+        w1 = self.joint_y[jidx["le"]] - self.joint_y[jidx["ls"]]
+        g1 =  w1 > 120
+        # 肘と手首のy座標が近い
+        w2 = abs(self.joint_y[jidx["le"]] - self.joint_y[jidx["lw"]])
+        g2 = w2 < 80
+
+        # 左手首が映らないときの状態を推定する
+        if self.joint_exist[jidx["lw"]] == 1:
+            self.lw_state_estimator = min(3, self.lw_state_estimator+1)
         else:
-            print("no")
-        """
+            self.lw_state_estimator = max(-3, self.lw_state_estimator-1)
 
+        gw = self.lw_state_estimator > 0
+
+        l_flag = g0 & g1 & g2 & gw
+
+        if r_flag:
+            self.rval += 1
+        else:
+            self.rval = max(0, self.rval-1)
+
+        if l_flag:
+            self.lval += 1
+        else:
+            self.lval = max(0, self.lval-1)
+
+        if (self.rval >= 40 or self.lval >= 40) and self.goal == 1:
+            self.goalVal = 1
+            
         # なでる
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         gray = np.zeros((rows, cols))
-        # gray[(hsv[:,:,0] < 80) & (hsv[:,:,0] < 100) & (hsv[:,:,1] > 40)] = 255
         gray[(hsv[:,:,0] < 40) & (hsv[:,:,1] > 40)] = 255
         gray[240:] = 0
         nadenade = np.count_nonzero(gray == 255)
         if nadenade > 100000:
-            print("nadenade")
+            self.nval += 1
         else:
-            print("no")
+            self.nval = max(0, self.nval-1)
+
+        if self.nval >= 20 and self.goal == 2:
+            self.goalVal = 1
             
         # 人間の関節描画
         for i in range(self.joint_size):
@@ -94,7 +161,6 @@ class image_converter:
             cv2.circle(img, (int(self.joint_x[i]), int(self.joint_y[i])), 10, (255, 0, joint_color), thickness=3)
             
         cv2.imshow("img", img)
-        cv2.imshow("gray", gray)
         cv2.waitKey(3)
 
         # cv2.imwrite('a.jpg', img)
