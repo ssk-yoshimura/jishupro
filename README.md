@@ -1,10 +1,73 @@
+## 実演手順
+### 準備
+```
+roscore
+```
+#### wire_initialize
+- 電源は外し、init_pinも外して書き込む
+- リセットボタンを押す->電源つける->init_pinつける
+- シリアルモニタで異常なしを確認、値をコピー
+#### wire_pull
+- コピーした値を貼り付ける
+- 電源は外し、init_pinも外して書き込む
+- リセットボタンを押す->電源つける->init_pinつける
+```
+rosrun rosserial_python serial_node.py
+```
+#### euslisp
+jishupro/euslispに入る
+```
+em demo.l
+```
+シェルを開いて
+```
+roseus "demo.l
+```
+```
+walk-prepare
+```
+#### USBカメラ 
+ここで初めて、カメラとCoralを付ける。
+- フリーズした場合、カメラを挿し直すと改善することがある。
+
+```ls /dev/video```でvideo1があることを確認する。
+
+```
+rosrun uvc_camera uvc_camera_node _device:=/dev/video1
+```
+
+- PCのカメラの場合```rosrun usb_cam usb_cam_node```
+
+#### Edge TPU 
+```
+source /opt/ros/melodic/setup.bash
+```
+```
+source ~/coral_ws/devel/setup.bash
+```
+```
+roslaunch coral_usb edgetpu_human_pose_estimator.launch INPUT_IMAGE:=/image_raw
+```
+#### Action Server
+```
+python cv_pose_action.py
+```
+### 発表
+#### eusプログラム
+- walk-prepare
+- walk-both
+- walk-back
+- rotate
+- yc
 ## ESP32のプログラム起動の諸注意
 - モータの電源を抜き、init_pinを繋げない状態で書き込む。
 - リセットボタンを押してから、モータの電源を入れて、その後init_pinを繋げる。
 - rosrun rosserial_...する。だめそうだったらリセットボタンからやり直す。
+- モータが異常回転している場合、エンコーダの線が抜けている（initialize時にエンコーダの値をよく見て、異常がないことを確認すること）
 - 最悪、動画を見せる。
 
 ## Coral TPUの諸注意
+- カメラ・coralを挿さずにまずesp32のセットアップをする。
 - coralはPC（右側）に直接挿す。
 - usbカメラはハブのPC側、esp32はハブの先側（横）に挿す。
 - 背筋をまっすぐ、少し前屈み。
