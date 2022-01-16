@@ -27,6 +27,7 @@ roseus "demo.l
 walk-prepare
 ```
 #### USBカメラ 
+ここで初めて、カメラとCoralを付ける。
 ```ls /dev/video```でvideo1があることを確認する。
 
 ```
