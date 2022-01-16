@@ -29,6 +29,7 @@ walk-prepare
 #### USBカメラ 
 ここで初めて、カメラとCoralを付ける。
 - フリーズした場合、カメラを挿し直すと改善することがある。
+
 ```ls /dev/video```でvideo1があることを確認する。
 
 ```
@@ -51,6 +52,7 @@ roslaunch coral_usb edgetpu_human_pose_estimator.launch INPUT_IMAGE:=/image_raw
 ```
 python cv_pose_action.py
 ```
+### 発表
 #### eusプログラム
 - walk-prepare
 - walk-both
