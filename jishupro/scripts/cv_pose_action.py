@@ -60,17 +60,23 @@ class image_converter:
         self.pose_sub.unregister()
         cv2.destroyAllWindows()
         result = self.server.get_default_result()
-        if self.rval >= 40 & self.goal == 1:
+        result.yoshimura_result = 0
+        if self.goalVal == 1:
             result.yoshimura_result = 1 # 1は右手
-        elif self.lval >= 40 & self.goal == 1:
+        elif self.goalVal == 2:
             result.yoshimura_result = 2 # 2は左手
-        else:
+        elif self.goal==2:
             result.yoshimura_result = 3 # 3はなでる
         print ("result is " + str(result.yoshimura_result))
         self.rval = 0
         self.lval = 0
         self.nval = 0
         self.goalVal = 0
+        self.joint_x = np.zeros(self.joint_size)
+        self.joint_y = np.zeros(self.joint_size)
+        self.joint_exist = np.zeros(self.joint_size)
+        self.rw_state_estimator = 0
+        self.lw_state_estimator = 0
         self.server.set_succeeded(result)
 
     # 画像処理のコールバック関数
@@ -139,14 +145,18 @@ class image_converter:
             self.lval = max(0, self.lval-1)
 
         if (self.rval >= 40 or self.lval >= 40) and self.goal == 1:
-            self.goalVal = 1
-            
+            if self.rval >= 40:
+                self.goalVal = 1 # 右手
+            else:
+                self.goalVal = 2 # 左手
+                
         # なでる
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         gray = np.zeros((rows, cols))
         gray[(hsv[:,:,0] < 40) & (hsv[:,:,1] > 40)] = 255
         gray[240:] = 0
         nadenade = np.count_nonzero(gray == 255)
+        nadenade = 0
         if nadenade > 100000:
             self.nval += 1
         else:

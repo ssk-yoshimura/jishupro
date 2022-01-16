@@ -33,11 +33,20 @@
     (cond
      ((= hand-goal 1) (rhand))
      ((= hand-goal 2) (lhand)))
+    (unix::sleep 5)
+    (cond
+     ((= hand-goal 1) (rhand-rvs))
+     ((= hand-goal 2) (lhand-rvs)))
     ;; (setq color (send (send *c* :get-result) :yoshimura_result))
     ))
 
 (defun wait-mbot ()
   (while (= cvg 0)
     (ros::spin-once)))
+
+(defun yc ()
+  (yoshimura-client)
+  (yoshimura-client)
+  )
 
 ;; (yoshimura-client)
