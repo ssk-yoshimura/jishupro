@@ -118,3 +118,5 @@ python cv_pose_action.py
 https://github.com/ssk-yoshimura/jishupro/tree/master/jishupro#readme
 #### 諸注意など
 https://github.com/ssk-yoshimura/jishupro/tree/master/jishupro/euslisp#readme
+#### エンコーダ付き連続回転サーボの処理
+https://github.com/ssk-yoshimura/jishupro/tree/master/jishupro/sketch/PCA9685_Sample5#readme
