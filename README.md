@@ -35,7 +35,7 @@ https://github.com/ssk-yoshimura/jishupro/blob/master/kennosuke_.pdf
 ## ソフトウェア構成
 ROSを使用し、IK等にはEusLispを利用した。次のような順番で処理を行っている。
 
-1. (python)Coral TPUからPoseArrayトピックをサブスクライブし、人の姿勢の判別等を行ったり、色で画像処理を行ったりする。実際はAction Serverとして、呼び出された時のみ処理を行う
+1. (python)Coral TPUからPoseArrayトピックをサブスクライブし、人の姿勢の判別等を行ったり、カメラ画像の色で画像処理を行ったりする。実際はAction Serverとして、呼び出された時のみ処理を行う
 3. (euslisp)画像認識の場合はAction Clientとなって利用
 4. (euslisp)ロボット手先の軌道を作成
 5. (euslisp)手先の軌道をもとにIKを解き、関節角度軌道を作成
