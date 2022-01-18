@@ -3,6 +3,10 @@
 
 <img src=https://user-images.githubusercontent.com/93033349/149900406-44b384b8-ff05-49f0-ae49-7815ed4fadda.png width=500>
 
+発表スライド：
+
+https://github.com/ssk-yoshimura/jishupro/blob/master/kennosuke_.pdf
+
 #### アピールポイント
 
 - 6自由度を筋肉10本で動かすロボット（足回り2輪付き）
