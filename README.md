@@ -70,7 +70,7 @@ rosrun rosserial_python serial_node.py
 #### euslisp
 jishupro/euslispに入る
 ```
-em demo.l
+emacs demo.l
 ```
 シェルを開いて
 ```
