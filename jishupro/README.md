@@ -69,6 +69,7 @@ mbot2ri-avs-ik (rtarget ltarget wrtarget wltarget time_all sequence_mode &key th
 機能：目標をもとにikを解いて軌道を生成し、ESP32に送る
 
 ### デモ用の関数
+```load "demo.l```でデモに必要な全てのeusプログラムがロードされる
 - ```walk-prepare``` 歩行用の姿勢にする
 - ```walk-prepare 1```歩行用の姿勢から初期状態へ戻す
 - ```walk-both```歩行
