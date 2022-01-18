@@ -108,3 +108,9 @@ python cv_pose_action.py
 - walk-back
 - rotate
 - yc
+
+# リンク集
+#### eusモデル、関数など
+https://github.com/ssk-yoshimura/jishupro/tree/master/jishupro#readme
+#### 諸注意など
+https://github.com/ssk-yoshimura/jishupro/tree/master/jishupro/euslisp#readme
